@@ -96,6 +96,8 @@ CustomRandomSource randSource( 34957197 );
 #include "whiteSprites.h"
 
 
+extern long timeSinceLastFrameMS;
+
 // should we pull the map
 static char mapPullMode = 0;
 static char autoLogIn = 0;
@@ -1287,6 +1289,8 @@ void showReconnectPage() {
 
 void drawFrame( char inUpdate ) {    
 
+	// Update frameRateFactor.
+	frameRateFactor = 60. / (1000. / timeSinceLastFrameMS);
 
     if( !inUpdate ) {
         

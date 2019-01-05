@@ -234,7 +234,7 @@ typedef struct LiveObject {
         int currentPathStep;
         doublePair currentMoveDirection;
         
-        int numFramesOnCurrentStep;
+        double numFramesOnCurrentStep;
 
         char onFinalPathStep;
 
@@ -498,7 +498,7 @@ class LivingLifePage : public GamePage {
         double *mMapAnimationFrozenRotFrameCount;
         char *mMapAnimationFrozenRotFrameCountUsed;
 
-        int *mMapFloorAnimationFrameCount;
+        double *mMapFloorAnimationFrameCount;
 
 
         // all tiles on ground work their way toward animation type of

@@ -117,9 +117,9 @@ static JenkinsRandomSource remapRandSource( 340403 );
 
 static int lastScreenMouseX, lastScreenMouseY;
 static char mouseDown = false;
-static int mouseDownFrames = 0;
+static double mouseDownFrames = 0.;
 
-static int minMouseDownFrames = 30;
+static double minMouseDownFrames = 30.;
 
 
 static int screenCenterPlayerOffsetX, screenCenterPlayerOffsetY;
@@ -1361,11 +1361,8 @@ void updateMoveSpeed( LiveObject *inObject ) {
 
     double speedPerSec = moveLeft / etaSec;
 
-
-    // pretend that frame rate is constant
-    double fps = baseFramesPerSecond / frameRateFactor;
     
-    inObject->currentSpeed = speedPerSec / fps;
+    inObject->currentSpeed = speedPerSec / 60.0;
     printf( "fixed speed = %f\n", inObject->currentSpeed );
     
     inObject->currentGridSpeed = speedPerSec;
@@ -1618,7 +1615,7 @@ void LivingLifePage::computePathToDest( LiveObject *inObject ) {
         }
     
     inObject->currentPathStep = 0;
-    inObject->numFramesOnCurrentStep = 0;
+    inObject->numFramesOnCurrentStep = 0.;
     inObject->onFinalPathStep = false;
     
     delete [] blockedMap;
@@ -1866,7 +1863,7 @@ void LivingLifePage::clearMap() {
         mMapAnimationLastFrameCount[i] = 
             randSource.getRandomBoundedInt( 0, 10000 );
         
-        mMapAnimationFrozenRotFrameCount[i] = 0;
+        mMapAnimationFrozenRotFrameCount[i] = 0.;
         mMapAnimationFrozenRotFrameCountUsed[i] = false;
         
         mMapFloorAnimationFrameCount[i] = 
@@ -2170,7 +2167,7 @@ LivingLifePage::LivingLifePage()
 
     mMapAnimationFrozenRotFrameCountUsed =  new char[ mMapD * mMapD ];
     
-    mMapFloorAnimationFrameCount =  new int[ mMapD * mMapD ];
+    mMapFloorAnimationFrameCount =  new double[ mMapD * mMapD ];
 
     mMapCurAnimType =  new AnimType[ mMapD * mMapD ];
     mMapLastAnimType =  new AnimType[ mMapD * mMapD ];
@@ -2889,9 +2886,9 @@ void LivingLifePage::handleAnimSound( int inObjectID, double inAge,
                                       double inPosX, double inPosY ) {    
     
             
-    double oldTimeVal = frameRateFactor * inOldFrameCount / 60.0;
+    double oldTimeVal = inOldFrameCount / 60.0;
             
-    double newTimeVal = frameRateFactor * inNewFrameCount / 60.0;
+    double newTimeVal = inNewFrameCount / 60.0;
                 
 
     AnimationRecord *anim = getAnimation( inObjectID, inType );
@@ -2988,7 +2985,7 @@ void LivingLifePage::drawMapCell( int inMapI,
         if( !mapPullMode && !inHighlightOnly && !inNoTimeEffects ) {
             
             if( mMapCurAnimType[ inMapI ] == moving ) {
-                double animSpeed = 1.0;
+                double animSpeed = frameRateFactor;
                 ObjectRecord *movingObj = getObject( oID );
             
                 if( movingObj->speedMult < 1.0 ) {
@@ -3002,8 +2999,8 @@ void LivingLifePage::drawMapCell( int inMapI,
                 mMapAnimationFrozenRotFrameCountUsed[ inMapI ] = false;
                 }
             else {
-                mMapAnimationFrameCount[ inMapI ] ++;
-                mMapAnimationLastFrameCount[ inMapI ] ++;
+                mMapAnimationFrameCount[ inMapI ] += frameRateFactor;
+                mMapAnimationLastFrameCount[ inMapI ] += frameRateFactor;
                 }
 
             
@@ -3139,11 +3136,9 @@ void LivingLifePage::drawMapCell( int inMapI,
         
 
 
-        double timeVal = frameRateFactor * 
-            mMapAnimationFrameCount[ inMapI ] / 60.0;
+        double timeVal = mMapAnimationFrameCount[ inMapI ] / 60.0;
                 
-        double frozenRotTimeVal = frameRateFactor *
-            mMapAnimationFrozenRotFrameCount[ inMapI ] / 60.0;
+        double frozenRotTimeVal = mMapAnimationFrozenRotFrameCount[ inMapI ] / 60.0;
 
         double targetTimeVal = timeVal;
 
@@ -3152,8 +3147,7 @@ void LivingLifePage::drawMapCell( int inMapI,
             curType = mMapLastAnimType[ inMapI ];
             fadeTargetType = mMapCurAnimType[ inMapI ];
             
-            timeVal = frameRateFactor * 
-                mMapAnimationLastFrameCount[ inMapI ] / 60.0;
+            timeVal = mMapAnimationLastFrameCount[ inMapI ] / 60.0;
             }
                 
                 
@@ -3593,21 +3587,18 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
                 
     double animFade = 1.0;
                 
-    double timeVal = frameRateFactor * 
-        inObj->animationFrameCount / 60.0;
+    double timeVal = inObj->animationFrameCount / 60.0;
     
     double targetTimeVal = timeVal;
 
-    double frozenRotTimeVal = frameRateFactor * 
-        inObj->frozenRotFrameCount / 60.0;
+    double frozenRotTimeVal = inObj->frozenRotFrameCount / 60.0;
 
     if( inObj->lastAnimFade > 0 ) {
         curType = inObj->lastAnim;
         fadeTargetType = inObj->curAnim;
         animFade = inObj->lastAnimFade;
         
-        timeVal = frameRateFactor * 
-            inObj->lastAnimationFrameCount / 60.0;
+        timeVal = inObj->lastAnimationFrameCount / 60.0;
         }
                 
 
@@ -3845,13 +3836,11 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
                 
         double heldAnimFade = 1.0;
                     
-        double heldTimeVal = frameRateFactor * 
-            inObj->heldAnimationFrameCount / 60.0;
+        double heldTimeVal = inObj->heldAnimationFrameCount / 60.0;
         
         double targetHeldTimeVal = heldTimeVal;
         
-        double frozenRotHeldTimeVal = frameRateFactor * 
-            inObj->heldFrozenRotFrameCount / 60.0;
+        double frozenRotHeldTimeVal = inObj->heldFrozenRotFrameCount / 60.0;
 
         
         char heldFlip = inObj->holdingFlip;
@@ -3983,8 +3972,7 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
             fadeTargetHeldType = inObj->curHeldAnim;
             heldAnimFade = inObj->lastHeldAnimFade;
             
-            heldTimeVal = frameRateFactor * 
-                inObj->lastHeldAnimationFrameCount / 60.0;
+            heldTimeVal = inObj->lastHeldAnimationFrameCount / 60.0;
             }
         
                     
@@ -4761,11 +4749,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             
                     
-            int oldFrameCount = 
+            double oldFrameCount = 
                 mMapFloorAnimationFrameCount[ mapI ];
             
             if( ! mapPullMode ) {
-                mMapFloorAnimationFrameCount[ mapI ] ++;
+                mMapFloorAnimationFrameCount[ mapI ] += frameRateFactor;
                 }
 
 
@@ -4805,8 +4793,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                                      (double)screenY / CELL_D );
                     }
             
-                double timeVal = frameRateFactor * 
-                    mMapFloorAnimationFrameCount[ mapI ] / 60.0;
+                double timeVal = mMapFloorAnimationFrameCount[ mapI ] / 60.0;
                 
 
                 if( p > 0 ) {
@@ -9169,7 +9156,7 @@ void LivingLifePage::step() {
     
 
     if( mouseDown ) {
-        mouseDownFrames++;
+        mouseDownFrames += frameRateFactor;
         }
     
     if( mServerSocket == -1 ) {
@@ -10549,7 +10536,7 @@ void LivingLifePage::step() {
             char *newMapAnimationFrozenRotFameCountUsed = 
                 new char[ mMapD * mMapD ];
 
-            int *newMapFloorAnimationFrameCount = new int[ mMapD * mMapD ];
+            double *newMapFloorAnimationFrameCount = new double[ mMapD * mMapD ];
         
             AnimType *newMapCurAnimType = new AnimType[ mMapD * mMapD ];
             AnimType *newMapLastAnimType = new AnimType[ mMapD * mMapD ];
@@ -10686,7 +10673,7 @@ void LivingLifePage::step() {
             
             memcpy( mMapFloorAnimationFrameCount, 
                     newMapFloorAnimationFrameCount, 
-                    mMapD * mMapD * sizeof( int ) );
+                    mMapD * mMapD * sizeof( double ) );
 
             
             memcpy( mMapCurAnimType, newMapCurAnimType, 
@@ -11528,7 +11515,7 @@ void LivingLifePage::step() {
                                     // set down into an empty spot
                                     // reset frame count
                                     mMapAnimationFrameCount[mapI] = 0;
-                                    mMapAnimationLastFrameCount[mapI] = 0;
+                                    mMapAnimationLastFrameCount[mapI] = 0.;
                                     }
                                 else {
                                     // else, leave existing frame count alone,
@@ -11543,8 +11530,8 @@ void LivingLifePage::step() {
                                     if( newAnim != NULL  && 
                                         newAnim->forceZeroStart ) {
                                         
-                                        mMapAnimationFrameCount[mapI] = 0;
-                                        mMapAnimationLastFrameCount[mapI] = 0;
+                                        mMapAnimationFrameCount[mapI] = 0.;
+                                        mMapAnimationLastFrameCount[mapI] = 0.;
                                         }
                                     }
                                     
@@ -11552,7 +11539,7 @@ void LivingLifePage::step() {
                                 mMapCurAnimType[mapI] = ground;
                                 mMapLastAnimType[mapI] = ground;
                                 mMapLastAnimFade[mapI] = 0;
-                                mMapAnimationFrozenRotFrameCount[mapI] = 0;
+                                mMapAnimationFrozenRotFrameCount[mapI] = 0.;
                                 }
                             else {
                                 mMapLastAnimType[mapI] = mMapCurAnimType[mapI];
@@ -13413,7 +13400,7 @@ void LivingLifePage::step() {
                         o.heldObjectRot = 0;
 
                         o.currentSpeed = 0;
-                        o.numFramesOnCurrentStep = 0;
+                        o.numFramesOnCurrentStep = 0.;
                         o.currentGridSpeed = 0;
                         
                         o.moveTotalTime = 0;
@@ -14179,7 +14166,7 @@ void LivingLifePage::step() {
                                                 newPath.getElementArray();
                                             existing->currentPathStep = 0;
                                             existing->numFramesOnCurrentStep 
-                                                = 0;
+                                                = 0.;
                                             
 
                                             printf( "    NEW PATH:  " );
@@ -15274,7 +15261,7 @@ void LivingLifePage::step() {
             // push camera out in front
             
 
-            double moveScale = 40 * cameraFollowsObject->currentSpeed;
+            double moveScale = 40 * cameraFollowsObject->currentSpeed * frameRateFactor;
             if( ( screenCenterPlayerOffsetX < 0 &&
                   cameraFollowsObject->currentMoveDirection.x < 0 )
                 ||
@@ -15288,7 +15275,7 @@ void LivingLifePage::step() {
                 lrint( moveScale * 
                        cameraFollowsObject->currentMoveDirection.x );
             
-            moveScale = 40 * cameraFollowsObject->currentSpeed;
+            moveScale = 40 * cameraFollowsObject->currentSpeed * frameRateFactor;
             if( ( screenCenterPlayerOffsetY < 0 &&
                   cameraFollowsObject->currentMoveDirection.y < 0 )
                 ||
@@ -15381,7 +15368,7 @@ void LivingLifePage::step() {
         int maxRX = viewWidth / 15;
         int maxRY = viewHeight / 15;
         int maxR = 0;
-        double moveSpeedFactor = 20 * cameraFollowsObject->currentSpeed;
+        double moveSpeedFactor = 20 * cameraFollowsObject->currentSpeed * frameRateFactor;
         
         if( moveSpeedFactor < 1 ) {
             moveSpeedFactor = 1 * frameRateFactor;
@@ -15475,7 +15462,7 @@ void LivingLifePage::step() {
             }
 
         
-        double animSpeed = o->lastSpeed;
+        double animSpeed = o->lastSpeed * frameRateFactor;
         
 
         if( o->holdingID > 0 ) {
@@ -15657,13 +15644,13 @@ void LivingLifePage::step() {
             doublePair endPos = { (double)nextStepDest.x, 
                                   (double)nextStepDest.y };
             
-            while( distance( o->currentPos, endPos ) <= o->currentSpeed &&
+            while( distance( o->currentPos, endPos ) <= o->currentSpeed * frameRateFactor &&
                    o->currentPathStep < o->pathLength - 2 ) {
                 
                 // speed too great, overshooting next step
                 
                 o->currentPathStep ++;
-                o->numFramesOnCurrentStep = 0;
+                o->numFramesOnCurrentStep = 0.;
                 
                 nextStepDest = o->pathToDest[ o->currentPathStep + 1 ];
             
@@ -15708,7 +15695,7 @@ void LivingLifePage::step() {
                 o->currentMoveDirection = dir;
                 }
             
-            if( o->numFramesOnCurrentStep * o->currentSpeed  * frameRateFactor
+            if( o->numFramesOnCurrentStep * o->currentSpeed * frameRateFactor
                 > 2 ) {
                 // spent twice as much time reaching this tile as we should
                 // may be circling
@@ -15739,7 +15726,7 @@ void LivingLifePage::step() {
 
                 o->currentPos = add( o->currentPos,
                                      mult( o->currentMoveDirection,
-                                           o->currentSpeed ) );
+                                           o->currentSpeed * frameRateFactor ) );
                 
                 addNewAnim( o, moving );
                 
@@ -15751,7 +15738,7 @@ void LivingLifePage::step() {
                               endPos ) ) {
                     
                     o->currentPathStep ++;
-                    o->numFramesOnCurrentStep = 0;
+                    o->numFramesOnCurrentStep = 0.;
                     }
                 }
             else {
@@ -15776,8 +15763,7 @@ void LivingLifePage::step() {
                     // make sure they are really holding the mouse down
                     // (give them time to unpress the mouse)
                     if( nextActionMessageToSend == NULL ||
-                        mouseDownFrames >  
-                        minMouseDownFrames / frameRateFactor ) {
+                        mouseDownFrames > minMouseDownFrames ) {
                         
                         double absX = fabs( delta.x );
                         double absY = fabs( delta.y );
@@ -15791,8 +15777,7 @@ void LivingLifePage::step() {
                                 &&
                                 absY < CELL_D * 4 
                                 &&
-                                mouseDownFrames >  
-                                minMouseDownFrames / frameRateFactor ) {
+                                mouseDownFrames > minMouseDownFrames ) {
                                 
                                 // they're holding mouse down very close
                                 // to to their character
@@ -15835,7 +15820,7 @@ void LivingLifePage::step() {
                 else if( o->id == ourID && o->pathLength >= 2 &&
                          nextActionMessageToSend == NULL &&
                          distance( endPos, o->currentPos )
-                         < o->currentSpeed ) {
+                         < o->currentSpeed * frameRateFactor ) {
 
                     // reached destination of bare-ground click
 
@@ -15952,7 +15937,7 @@ void LivingLifePage::step() {
                 
 
                 if( distance( endPos, o->currentPos )
-                    < o->currentSpeed ) {
+                    < o->currentSpeed * frameRateFactor ) {
 
                     // reached destination
                     o->currentPos = endPos;
@@ -15990,7 +15975,7 @@ void LivingLifePage::step() {
                     
                     o->currentPos = add( o->currentPos,
                                          mult( o->currentMoveDirection,
-                                               o->currentSpeed ) );
+                                               o->currentSpeed * frameRateFactor ) );
 
                     if( 1.5 * distance( o->currentPos,
                                         startPos )
@@ -16013,7 +15998,7 @@ void LivingLifePage::step() {
                 //updateMoveSpeed( o );
                 }
             
-            o->numFramesOnCurrentStep++;
+            o->numFramesOnCurrentStep += frameRateFactor;
             }
         
         
@@ -17434,7 +17419,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     
     mouseDown = true;
     if( !mouseAlreadyDown ) {
-        mouseDownFrames = 0;
+        mouseDownFrames = 0.;
         }
     
     getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
@@ -17560,8 +17545,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     
     
     if( mouseAlreadyDown && 
-        mouseDownFrames >  
-        minMouseDownFrames / frameRateFactor ) {
+        mouseDownFrames > minMouseDownFrames ) {
         
         // continuous movement mode
 
@@ -18647,7 +18631,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                 
                 ourLiveObject->pathLength = 2;
                 ourLiveObject->currentPathStep = 0;
-                ourLiveObject->numFramesOnCurrentStep = 0;
+                ourLiveObject->numFramesOnCurrentStep = 0.;
                 ourLiveObject->onFinalPathStep = false;
                 
                 ourLiveObject->currentMoveDirection =
@@ -18785,8 +18769,7 @@ void LivingLifePage::pointerUp( float inX, float inY ) {
     if( mouseDown && 
         getOurLiveObject()->inMotion 
         &&
-        mouseDownFrames >  
-        minMouseDownFrames / frameRateFactor ) {
+        mouseDownFrames > minMouseDownFrames ) {
         
         // treat the up as one final click (at closest next path position
         // to where they currently are)
