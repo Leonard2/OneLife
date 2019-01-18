@@ -19104,14 +19104,18 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             changeHUDFOV( scaleHUD );
             }
             break;
-        case 127: { // DEL
-            //if( getOurLiveObject()->age < 1 && getOurLiveObject()->heldByAdultID > 0 ) {
-                if( isShiftKeyDown() ) {
-                    sendToServerSocket( (char*)"MOVE 0 0#" );
-                }
-            //}
-            break;
-        }
+        case 127: // DEL
+		{
+			if( isShiftKeyDown() )
+			{
+				if( getOurLiveObject()->age < 1 && getOurLiveObject()->heldByAdultID > 0 )
+					sendToServerSocket( (char*)"DIE 0 0#" );
+				else
+					sendToServerSocket( (char*)"MOVE 0 0#" );
+
+			}
+			break;
+		}
         case 9: // tab
             if( mCurrentHintObjectID != 0 ) {
                 
