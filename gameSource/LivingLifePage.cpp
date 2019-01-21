@@ -97,8 +97,8 @@ extern float musicLoudness;
 // Vanilla scale of 1 is 1280x720, 1.5 is 1920x1080, 2 is 2560x1440, 3 is 4k, 6 is 8k
 // Scales above 2 will have significantly more "edge screen popping"
 extern float gui_fov_scale;
-extern int gui_fov_scale_hud;
-extern float gui_fov_effective_scale;
+extern float gui_fov_scale_hud;
+extern float gui_fov_target_scale_hud;
 extern float gui_fov_preferred_min_scale;
 extern float gui_fov_preferred_max_scale;
 extern int gui_fov_offset_x;
@@ -188,6 +188,15 @@ static char showFertilityPanel = true;
 // AGEMOD NOTE:  Change 1/3 - Take these lines during the merge process
 static char showAgePanel = true;
 static char showCursorZoom = false;
+
+static double recalcOffsetX( double x )
+{
+	return double(( x + gui_fov_offset_x ) / ( 1280 / 2 * gui_fov_target_scale_hud )) * ( 1280 / 2 );
+}
+static double recalcOffsetY( double y )
+{
+	return double(( y + gui_fov_offset_y ) / ( 720 / 2 * gui_fov_target_scale_hud )) * ( 720 / 2 );
+}
 
 
 // most recent home at end
@@ -2018,44 +2027,6 @@ LivingLifePage::LivingLifePage()
     addComponent( &mSayField );
     
     mSayField.unfocus();
-    
-    
-    // FOVMOD NOTE:  Change 1/15 - Take these lines during the merge process
-	mNotePaperHideOffset.x = -242 * gui_fov_effective_scale;
-	mNotePaperHideOffset.y = -420 - gui_fov_offset_y;
-
-
-    mHomeSlipHideOffset.x = 0;
-	mHomeSlipHideOffset.y = (-360 * gui_fov_effective_scale) + ((64 * gui_fov_effective_scale) - 64);
-	if( gui_fov_scale_hud > 0 ) {
-		mHomeSlipHideOffset.y = -360 - gui_fov_offset_y;
-	}
-
-
-    for( int i=0; i<3; i++ ) {    
-        // FOVMOD NOTE:  Change 2/15 - Take these lines during the merge process
-        mHungerSlipShowOffsets[i].x = -540 * gui_fov_effective_scale;
-		mHungerSlipShowOffsets[i].y = -250 * gui_fov_effective_scale;
-		mHungerSlipHideOffsets[i].x = -540 * gui_fov_effective_scale;
-		mHungerSlipHideOffsets[i].y = -370 * gui_fov_effective_scale;
-		if( gui_fov_scale_hud > 0 ) {
-			mHungerSlipShowOffsets[i].x = -540;
-			mHungerSlipShowOffsets[i].y = -250 - gui_fov_offset_y;
-			mHungerSlipHideOffsets[i].x = -540;
-			mHungerSlipHideOffsets[i].y = -370 - gui_fov_offset_y;
-		}
-        
-        mHungerSlipWiggleTime[i] = 0;
-        mHungerSlipWiggleAmp[i] = 0;
-        mHungerSlipWiggleSpeed[i] = 0.05;
-        }
-    mHungerSlipShowOffsets[2].y += 20 * gui_fov_effective_scale;
-    mHungerSlipHideOffsets[2].y -= 20 * gui_fov_effective_scale;
-
-    mHungerSlipShowOffsets[2].y -= 50 * gui_fov_effective_scale;
-    mHungerSlipShowOffsets[1].y -= 30 * gui_fov_effective_scale;
-    mHungerSlipShowOffsets[0].y += 18 * gui_fov_effective_scale;
-
 
     mHungerSlipWiggleAmp[1] = 0.5;
     mHungerSlipWiggleAmp[2] = 0.5;
@@ -2064,29 +2035,6 @@ LivingLifePage::LivingLifePage()
 
     mStarvingSlipLastPos[0] = 0;
     mStarvingSlipLastPos[1] = 0;
-	
-	for( int i=0; i<NUM_YUM_SLIPS; i++ ) {;
-		mYumSlipHideOffset[i].x = ( -600 * gui_fov_effective_scale ) + ((64 * gui_fov_effective_scale) - 64);
-		mYumSlipHideOffset[i].y = ( -330 * gui_fov_effective_scale ) + ((32 * gui_fov_effective_scale) - 32);
-		if( gui_fov_scale_hud > 0 ) {
-			mYumSlipHideOffset[i].x = -600;
-			mYumSlipHideOffset[i].y = -330 - gui_fov_offset_y;
-		}
-	}
-    
-    mYumSlipHideOffset[2].x += 70;
-    mYumSlipHideOffset[3].x += 80;
-
-    for( int i=0; i<NUM_YUM_SLIPS; i++ ) {    
-        mYumSlipPosOffset[i] = mYumSlipHideOffset[i];
-        mYumSlipPosTargetOffset[i] = mYumSlipHideOffset[i];
-	}
-    
-
-    for( int i=0; i<3; i++ ) {    
-        mHungerSlipPosOffset[i] = mHungerSlipHideOffsets[i];
-        mHungerSlipPosTargetOffset[i] = mHungerSlipPosOffset[i];
-        }
     
     mHungerSlipVisible = -1;
 
@@ -2096,17 +2044,6 @@ LivingLifePage::LivingLifePage()
         char *name = autoSprintf( "hintSheet%d.tga", i + 1 );    
         mHintSheetSprites[i] = loadSprite( name, false );
         delete [] name;
-        
-        // FOVMOD NOTE:  Change 3/15 - Take these lines during the merge process
-		mHintHideOffset[i].x = 900 * gui_fov_effective_scale;
-		mHintHideOffset[i].y = (-370 * gui_fov_effective_scale) + ((96 * gui_fov_effective_scale) - 96);
-		if( gui_fov_scale_hud > 0 ) {
-			mHintHideOffset[i].x = 900 + gui_fov_offset_x;
-			mHintHideOffset[i].y = -370 - gui_fov_offset_y;
-		}
-        
-        mHintTargetOffset[i] = mHintHideOffset[i];
-        mHintPosOffset[i] = mHintHideOffset[i];
         
         mHintExtraOffset[i].x = 0;
         mHintExtraOffset[i].y = 0;
@@ -2144,26 +2081,12 @@ LivingLifePage::LivingLifePage()
 
     for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
         
-        // FOVMOD NOTE:  Change 4/15 - Take these lines during the merge process
-		mTutorialHideOffset[i].x = -914 * gui_fov_effective_scale;
-		if( gui_fov_scale_hud > 0 ) {
-			mTutorialHideOffset[i].x = -914;
-		}
         mTutorialFlips[i] = false;
         
         if( i % 2 == 1 ) {
             // odd on right side of screen
-			mTutorialHideOffset[i].x = 914 * gui_fov_effective_scale;
-			if( gui_fov_scale_hud > 0 ) {
-				mTutorialHideOffset[i].x = 914;
-			}
             mTutorialFlips[i] = true;
             }
-        
-		mTutorialHideOffset[i].y = 430 + gui_fov_offset_y;
-        
-        mTutorialTargetOffset[i] = mTutorialHideOffset[i];
-        mTutorialPosOffset[i] = mTutorialHideOffset[i];
 
         mTutorialExtraOffset[i].x = 0;
         mTutorialExtraOffset[i].y = 0;
@@ -2174,6 +2097,8 @@ LivingLifePage::LivingLifePage()
     mLiveTutorialSheetIndex = -1;
     mLiveTutorialTriggerNumber = -1;
 
+	//
+	calcOffsetHUD();
 
 
     mMap = new int[ mMapD * mMapD ];
@@ -2681,12 +2606,12 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
         return;
         }
 
-    double lineSpacing = handwritingFont->getFontHeight() / 2 + ( 5 * gui_fov_scale );
+    double lineSpacing = handwritingFont->getFontHeight() / 2 + ( 5 * gui_fov_scale_hud );
     
     double firstLineY =  inPos.y + ( lines->size() - 1 ) * lineSpacing;
     
-    if( firstLineY > lastScreenViewCenter.y + 330 ) {
-        firstLineY = lastScreenViewCenter.y + 330;
+    if( firstLineY > lastScreenViewCenter.y + recalcOffsetY( 330 ) * gui_fov_scale ) {
+        firstLineY = lastScreenViewCenter.y + recalcOffsetY( 330 ) * gui_fov_scale;
         }
 
 
@@ -2734,33 +2659,34 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
 
         double length = handwritingFont->measureString( line );
             
-        int numBlots = lrint( 0.25 + length / 20 ) + 1;
+        /*int numBlots = lrint( 0.25 + length / 20 ) + 1;
         
         if( inForceMinChalkBlots != -1 && numBlots < inForceMinChalkBlots ) {
             numBlots = inForceMinChalkBlots;
             }
     
-        doublePair blotSpacing = { 20, 0 };
+        doublePair blotSpacing = { 20, 0 };*/
     
         doublePair firstBlot = 
             { inPos.x, firstLineY - i * lineSpacing};
 
         
-        for( int b=0; b<numBlots; b++ ) {
-            doublePair blotPos = add( firstBlot, mult( blotSpacing, b ) );
+        for( doublePair blotPos = firstBlot; blotPos.x < inPos.x + ( length + 20 * gui_fov_scale_hud ); blotPos.x += 20 * gui_fov_scale_hud ) {
+            //doublePair blotPos = add( firstBlot, mult( blotSpacing, b ) );
+			blotPos.y = firstBlot.y;
         
             double rot = blotRandSource.getRandomDouble();
-            drawSprite( mChalkBlotSprite, blotPos, gui_fov_effective_scale, rot );
-            drawSprite( mChalkBlotSprite, blotPos, gui_fov_effective_scale, rot );
+            drawSprite( mChalkBlotSprite, blotPos, gui_fov_scale_hud, rot );
+            drawSprite( mChalkBlotSprite, blotPos, gui_fov_scale_hud, rot );
             
             // double hit vertically
-            blotPos.y += ( 5 * gui_fov_effective_scale );
+            blotPos.y += ( 5 * gui_fov_scale_hud );
             rot = blotRandSource.getRandomDouble();
-            drawSprite( mChalkBlotSprite, blotPos, gui_fov_effective_scale, rot );
+            drawSprite( mChalkBlotSprite, blotPos, gui_fov_scale_hud, rot );
             
-            blotPos.y -= ( 10 * gui_fov_effective_scale );
+            blotPos.y -= ( 10 * gui_fov_scale_hud );
             rot = blotRandSource.getRandomDouble();
-            drawSprite( mChalkBlotSprite, blotPos, gui_fov_effective_scale, rot );
+            drawSprite( mChalkBlotSprite, blotPos, gui_fov_scale_hud, rot );
             }
         }
     
@@ -4159,22 +4085,19 @@ void LivingLifePage::drawHungerMaxFillLine( doublePair inAteWordsPos,
     
     
     // FOVMOD NOTE:  Change 5/15 - Take these lines during the merge process
-	doublePair barPos = { lastScreenViewCenter.x - ( 590 * gui_fov_effective_scale ), 
-						  lastScreenViewCenter.y - ( 334 * gui_fov_effective_scale )};
-    if( gui_fov_scale_hud > 0 ) {
-		barPos.x = lastScreenViewCenter.x - 590;
-		barPos.y = lastScreenViewCenter.y - 334 - gui_fov_offset_y;
-	}
-    barPos.x -= 12 * gui_fov_effective_scale;
-    barPos.y -= 10 * gui_fov_effective_scale;
+	doublePair barPos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
+						  lastScreenViewCenter.y - ( recalcOffsetY( 334 ) * gui_fov_scale )};
+
+    barPos.x -= 12 * gui_fov_scale_hud;
+    barPos.y -= 10 * gui_fov_scale_hud;
     
     
-    barPos.x += ( 30 * gui_fov_effective_scale ) * inMaxFill;
+    barPos.x += ( 30 * gui_fov_scale_hud ) * inMaxFill;
 
     if( ! inSkipBar ) {    
         drawSprite( inBarSprites[ inMaxFill %
                                   NUM_HUNGER_DASHES ], 
-                    barPos, gui_fov_effective_scale );
+                    barPos, gui_fov_scale_hud );
         }
     
 
@@ -4184,8 +4107,8 @@ void LivingLifePage::drawHungerMaxFillLine( doublePair inAteWordsPos,
 
     doublePair dashPos = inAteWordsPos;
             
-    dashPos.y -= 6 * gui_fov_effective_scale;
-    dashPos.x -= 5 * gui_fov_effective_scale;
+    dashPos.y -= 6 * gui_fov_scale_hud;
+    dashPos.x -= 5 * gui_fov_scale_hud;
 
     int numDashes = 0;
             
@@ -4200,22 +4123,22 @@ void LivingLifePage::drawHungerMaxFillLine( doublePair inAteWordsPos,
         
         drawSprite( inDashSprites[ numDashes %
                                    NUM_HUNGER_DASHES ], 
-                    drawPos, gui_fov_effective_scale );
-        dashPos.x -= 15 * gui_fov_effective_scale;
+                    drawPos, gui_fov_scale_hud );
+        dashPos.x -= 15 * gui_fov_scale_hud;
         //numDashes += dashRandSource.getRandomBoundedInt( 1, 10 );
         numDashes += 1;
         
         // correct shortness of last one
         if( numDashes % NUM_HUNGER_DASHES == 0 ) {
-            dashPos.x += 3 * gui_fov_effective_scale;
+            dashPos.x += 3 * gui_fov_scale_hud;
             }
         }
             
     // draw one more to connect to bar
-    dashPos.x = barPos.x + ( 6 * gui_fov_effective_scale );
+    dashPos.x = barPos.x + ( 6 * gui_fov_scale_hud );
     drawSprite( inDashSprites[ numDashes %
                                NUM_HUNGER_DASHES ], 
-                dashPos, gui_fov_effective_scale );
+                dashPos, gui_fov_scale_hud );
     }
 
 
@@ -5959,8 +5882,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
         speechPos.y += headPos.y;
         
-		int width = 250 * gui_fov_effective_scale;
-        int widthLimit = 250 * gui_fov_effective_scale;
+		int width = 250 * gui_fov_scale_hud;
+        int widthLimit = 250 * gui_fov_scale_hud;
         
         double fullWidth = 
             handwritingFont->measureString( o->currentSpeech );
@@ -5991,8 +5914,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         speechPos.y += 84;
         
-        int width = 250;
-        int widthLimit = 250;
+        int width = 250 * gui_fov_scale_hud;
+        int widthLimit = 250 * gui_fov_scale_hud;
         
         double fullWidth = 
             handwritingFont->measureString( ls->speech );
@@ -6746,12 +6669,12 @@ void LivingLifePage::draw( doublePair inViewCenter,
     
     if( ! equal( mHomeSlipPosOffset, mHomeSlipHideOffset ) ) {
         setDrawColor( 1, 1, 1, 1 );
-        drawSprite( mHomeSlipSprite, slipPos, gui_fov_effective_scale );
+        drawSprite( mHomeSlipSprite, slipPos, gui_fov_scale_hud );
 
         
         doublePair arrowPos = slipPos;
         
-        arrowPos.y += 35 * gui_fov_effective_scale;
+        arrowPos.y += 35 * gui_fov_scale_hud;
 
         if( ourLiveObject != NULL ) {
             
@@ -6799,7 +6722,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     
                     float v = 1.0 - a.fade;
                     setDrawColor( v, v, v, 1 );
-                    drawSprite( mHomeArrowErasedSprites[i], arrowPos, gui_fov_effective_scale );
+                    drawSprite( mHomeArrowErasedSprites[i], arrowPos, gui_fov_scale_hud );
                     }
                 }
             
@@ -6812,7 +6735,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 
                 setDrawColor( 1, 1, 1, 1 );
                 
-                drawSprite( mHomeArrowSprites[arrowIndex], arrowPos, gui_fov_effective_scale );
+                drawSprite( mHomeArrowSprites[arrowIndex], arrowPos, gui_fov_scale_hud );
                 }
                             
             toggleMultiplicativeBlend( false );
@@ -6821,7 +6744,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             doublePair distPos = arrowPos;
             
-            distPos.y -= 47 * gui_fov_effective_scale;
+            distPos.y -= 47 * gui_fov_scale_hud;
             
             if( homeDist > 1000 ) {
                 drawTopAsErased = false;
@@ -6940,22 +6863,22 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
 
-    int lineSpacing = 20 * gui_fov_scale;
+    int lineSpacing = 20 * gui_fov_scale_hud;
 
     doublePair notePos = add( mNotePaperPosOffset, lastScreenViewCenter );
 
     if( ! equal( mNotePaperPosOffset, mNotePaperHideOffset ) ) {
         setDrawColor( 1, 1, 1, 1 );
-        drawSprite( mNotePaperSprite, notePos, gui_fov_effective_scale );
+        drawSprite( mNotePaperSprite, notePos, gui_fov_scale_hud );
         
 
         doublePair drawPos = notePos;
 
-        drawPos.x += 160 * gui_fov_effective_scale;
-        drawPos.y += 79 * gui_fov_effective_scale;
-        drawPos.y += 22 * gui_fov_effective_scale;
+        drawPos.x += 160 * gui_fov_scale_hud;
+        drawPos.y += 79 * gui_fov_scale_hud;
+        drawPos.y += 22 * gui_fov_scale_hud;
         
-        drawPos.x += 27 * gui_fov_effective_scale;
+        drawPos.x += 27 * gui_fov_scale_hud;
 
         setDrawColor( 0, 0, 0, 1 );
         
@@ -6976,18 +6899,18 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
         delete [] partialSay;
 
-        SimpleVector<char*> *lines = splitLines( strUpper, ( 345 * gui_fov_scale ) );
+        SimpleVector<char*> *lines = splitLines( strUpper, ( 345 * gui_fov_scale_hud ) );
         
-        mNotePaperPosTargetOffset.y = mNotePaperHideOffset.y + 58;
+        mNotePaperPosTargetOffset.y = mNotePaperHideOffset.y + 58 * gui_fov_scale_hud;
         
         if( lines->size() > 1 ) {    
-            mNotePaperPosTargetOffset.y += (20 * gui_fov_scale) * ( lines->size() - 1 );
+            mNotePaperPosTargetOffset.y += (20 * gui_fov_scale_hud) * ( lines->size() - 1 );
             }
         
         doublePair drawPos = paperPos;
 
-        drawPos.x -= 160 * gui_fov_effective_scale;
-        drawPos.y += 79 * gui_fov_effective_scale;
+        drawPos.x -= 160 * gui_fov_scale_hud;
+        drawPos.y += 79 * gui_fov_scale_hud;
 
 
         doublePair drawPosTemp = drawPos;
@@ -7077,8 +7000,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         doublePair drawPos = paperPos;
 
-        drawPos.x -= 160 * gui_fov_effective_scale;
-        drawPos.y += 79 * gui_fov_effective_scale;
+        drawPos.x -= 160 * gui_fov_scale_hud;
+        drawPos.y += 79 * gui_fov_scale_hud;
 
         for( int i=0; i<mLastKnownNoteLines.size(); i++ ) {
             // whole line gone
@@ -7144,29 +7067,29 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 pageNumExtra = extraA;
                 
                 hintPos.x -= extraA;
-                hintPos.x -= 10;
+                hintPos.x -= 10 * gui_fov_scale_hud;
                 }
             
 
             setDrawColor( 1, 1, 1, 1 );
-            drawSprite( mHintSheetSprites[i], hintPos, gui_fov_effective_scale );
+            drawSprite( mHintSheetSprites[i], hintPos, gui_fov_scale_hud );
             
 
             setDrawColor( 0, 0, 0, 1.0f );
-            double lineSpacing = handwritingFont->getFontHeight() / 2 + ( 5 * gui_fov_effective_scale );
+            double lineSpacing = handwritingFont->getFontHeight() / 2 + ( 5 * gui_fov_scale_hud );
             
             int numLines;
             
             char **lines = split( mHintMessage[i], "#", &numLines );
             
             doublePair lineStart = hintPos;
-            lineStart.x -= (280 * gui_fov_effective_scale);
-            lineStart.y += (30 * gui_fov_effective_scale);
+            lineStart.x -= (280 * gui_fov_scale_hud);
+            lineStart.y += (30 * gui_fov_scale_hud);
             for( int l=0; l<numLines; l++ ) {
                 
                 if( l == 1 ) {
                     doublePair drawPos = lineStart;
-                    drawPos.x -= 5 * gui_fov_effective_scale;
+                    drawPos.x -= 5 * gui_fov_scale_hud;
                     
                     handwritingFont->drawString( "+",
                                                  drawPos, alignRight );
@@ -7174,7 +7097,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 
                 if( l == 2 ) {
                     doublePair drawPos = lineStart;
-                    drawPos.x -= 5 * gui_fov_effective_scale;
+                    drawPos.x -= 5 * gui_fov_scale_hud;
                     
                     handwritingFont->drawString( "=",
                                                  drawPos, alignRight );
@@ -7195,12 +7118,12 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 // now draw tab message
                 
                 lineStart = hintPos;
-                lineStart.x -= (280 * gui_fov_effective_scale);
+                lineStart.x -= (280 * gui_fov_scale_hud);
                 
                 lineStart.x -= mHintExtraOffset[i].x;
-                lineStart.x += (20 * gui_fov_effective_scale);
+                lineStart.x += (20 * gui_fov_scale_hud);
                 
-                lineStart.y += (30 * gui_fov_effective_scale);
+                lineStart.y += (30 * gui_fov_scale_hud);
                 
                 handwritingFont->drawString( pageNum, lineStart, alignLeft );
                 
@@ -7226,20 +7149,20 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 add( mTutorialPosOffset[i], lastScreenViewCenter );
             
             if( i % 2 == 1 ) {
-                tutorialPos = sub( tutorialPos, mTutorialExtraOffset[i] );
+                tutorialPos = add( tutorialPos, mTutorialExtraOffset[i] );
                 }
             else {
-                tutorialPos = add( tutorialPos, mTutorialExtraOffset[i] );
+                tutorialPos = sub( tutorialPos, mTutorialExtraOffset[i] );
                 }
             
             setDrawColor( 1, 1, 1, 1 );
             // rotate 180
-            drawSprite( mHintSheetSprites[i], tutorialPos, gui_fov_effective_scale, 0.5,
+            drawSprite( mHintSheetSprites[i], tutorialPos, gui_fov_scale_hud, 0.5,
                         mTutorialFlips[i] );
             
 
             setDrawColor( 0, 0, 0, 1.0f );
-            double lineSpacing = handwritingFont->getFontHeight() / 2 + 16;
+            double lineSpacing = handwritingFont->getFontHeight() / 2 + 16 * gui_fov_scale_hud;
             
             int numLines;
             
@@ -7248,15 +7171,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
             doublePair lineStart = tutorialPos;
             
             if( i % 2 == 1 ) {
-                lineStart.x -= 289 * gui_fov_effective_scale;
+                lineStart.x -= 289 * gui_fov_scale_hud;
                 //lineStart.x += mTutorialExtraOffset[i].x;
                 }
             else {
-                lineStart.x += 289 * gui_fov_effective_scale;
+                lineStart.x += 289 * gui_fov_scale_hud;
                 lineStart.x -= mTutorialExtraOffset[i].x;
                 }
             
-            lineStart.y += 8 * gui_fov_effective_scale;
+            lineStart.y += 8 * gui_fov_scale_hud;
             for( int l=0; l<numLines; l++ ) {
                 
                 handwritingFont->drawString( lines[l], 
@@ -7301,7 +7224,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if( mHungerSlipWiggleAmp[i] > 0 ) {
                 
                 double distFromHidden =
-                    mHungerSlipPosOffset[i].y - mHungerSlipHideOffsets[i].y;
+                    ( mHungerSlipPosOffset[i].y - mHungerSlipHideOffsets[i].y ) * gui_fov_scale_hud;
 
                 // amplitude grows when we are further from
                 // hidden, and shrinks again as we go back down
@@ -7349,7 +7272,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 }
             
 
-            drawSprite( mHungerSlipSprites[i], slipPos, gui_fov_effective_scale );
+            drawSprite( mHungerSlipSprites[i], slipPos, gui_fov_scale_hud );
             }
         }
 
@@ -7361,10 +7284,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
             doublePair slipPos = 
                 add( mYumSlipPosOffset[i], lastScreenViewCenter );
             setDrawColor( 1, 1, 1, 1 );
-            drawSprite( mYumSlipSprites[i], slipPos, gui_fov_effective_scale );
+            drawSprite( mYumSlipSprites[i], slipPos, gui_fov_scale_hud );
             
             doublePair messagePos = slipPos;
-            messagePos.y += 11 * gui_fov_effective_scale;
+            messagePos.y += 11 * gui_fov_scale_hud;
 
             if( mYumSlipNumberToShow[i] != 0 ) {
                 char *s = autoSprintf( "%dx", mYumSlipNumberToShow[i] );
@@ -7407,29 +7330,25 @@ void LivingLifePage::draw( doublePair inViewCenter,
     setDrawColor( 1, 1, 1, 1 );
     doublePair panelPos = lastScreenViewCenter;
     // FOVMOD NOTE:  Change 8/15 - Take these lines during the merge process
-	panelPos.y -= 242 + 32 + 16 + 6 + gui_fov_offset_y;
-	if( gui_fov_scale_hud == 0 ) {
-		panelPos.y = lastScreenViewCenter.y - ( 296 * gui_fov_effective_scale );
-	}
+	panelPos.y -= recalcOffsetY( 242 + 32 + 16 + 6 ) * gui_fov_scale;
 	// Ugly "hack" for hint [TAB] being cut off at the bottom.
-	if( gui_fov_scale_hud > 0 && gui_fov_scale <= 2 ) {
-		panelPos.x -= 900;
-		drawSprite( mGuiPanelSprite, panelPos );
-		panelPos.x += 1810;
-		drawSprite( mGuiPanelSprite, panelPos );
-		panelPos.x -= 910;
+	if( gui_fov_target_scale_hud > 1.f && gui_fov_target_scale_hud <= 2.f ) {
+		panelPos.x -= 900 * gui_fov_scale_hud;
+		drawSprite( mGuiPanelSprite, panelPos, gui_fov_scale_hud );
+		panelPos.x += 1810 * gui_fov_scale_hud;
+		drawSprite( mGuiPanelSprite, panelPos, gui_fov_scale_hud );
+		panelPos.x -= 910 * gui_fov_scale_hud;
 		}
-    drawSprite( mGuiPanelSprite, panelPos, gui_fov_effective_scale );
+    drawSprite( mGuiPanelSprite, panelPos, gui_fov_scale_hud );
 
     if( ourLiveObject != NULL &&
         ourLiveObject->dying  &&
         ! ourLiveObject->sick ) {
         toggleMultiplicativeBlend( true );
         doublePair bloodPos = panelPos;
-        bloodPos.y -= 32 * gui_fov_effective_scale;
-        bloodPos.x -= 32 * gui_fov_effective_scale;
-		if ( gui_fov_scale_hud > 0 ) { bloodPos.x += 32; }
-        drawSprite( mGuiBloodSprite, bloodPos, gui_fov_effective_scale );
+        bloodPos.y -= 32 * gui_fov_scale_hud;
+        bloodPos.x -= 32 * gui_fov_scale_hud;
+        drawSprite( mGuiBloodSprite, bloodPos, gui_fov_scale_hud );
         toggleMultiplicativeBlend( false );
         }
     
@@ -7450,15 +7369,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         // show as a sigil to right of temp meter
         // FOVMOD NOTE:  Change 9/15 - Take these lines during the merge process
-		doublePair curseTokenPos = { lastScreenViewCenter.x + ( 621 * gui_fov_effective_scale ), 
-									 lastScreenViewCenter.y - ( 316 * gui_fov_effective_scale )};
-		if( gui_fov_scale_hud > 0 ) {
-			curseTokenPos.x = lastScreenViewCenter.x + 621;
-			curseTokenPos.y = lastScreenViewCenter.y - 316 - gui_fov_offset_y;
-		}
+		doublePair curseTokenPos = { lastScreenViewCenter.x + ( recalcOffsetX( 621 ) * gui_fov_scale ), 
+									 lastScreenViewCenter.y - ( recalcOffsetY( 316 ) * gui_fov_scale )};
         curseTokenFont->drawString( "C", curseTokenPos, alignCenter );
         curseTokenFont->drawString( "+", curseTokenPos, alignCenter );
-        curseTokenPos.x += ( 6 * gui_fov_effective_scale );
+        curseTokenPos.x += ( 6 * gui_fov_scale_hud );
         curseTokenFont->drawString( "X", curseTokenPos, alignCenter );
         
         
@@ -7468,7 +7383,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             setDrawColor( 0, 0, 0, 1.0 );
             doublePair pointsPos = curseTokenPos;
             pointsPos.y -= curseTokenFont->getFontHeight();
-            pointsPos.x -= ( 3 * gui_fov_effective_scale );
+            pointsPos.x -= ( 3 * gui_fov_scale_hud );
             
             char *pointString = autoSprintf( "%d", 
                                              ourLiveObject->excessCursePoints );
@@ -7482,52 +7397,40 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         for( int i=0; i<ourLiveObject->foodCapacity; i++ ) {
             // FOVMOD NOTE:  Change 10/15 - Take these lines during the merge process 
-            doublePair pos = { lastScreenViewCenter.x - ( 590 * gui_fov_effective_scale ), 
-                               lastScreenViewCenter.y - ( 334 * gui_fov_effective_scale )};
-            if( gui_fov_scale_hud > 0 ) {
-                pos.x = lastScreenViewCenter.x - 590;
-                pos.y = lastScreenViewCenter.y - 334 - gui_fov_offset_y;
-                pos.x += i * 30;
-            } else {
-                pos.x += i * ( 30 * gui_fov_effective_scale );
-            }
+            doublePair pos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
+                               lastScreenViewCenter.y - ( recalcOffsetY( 334 ) * gui_fov_scale )};
+            pos.x += i * ( 30 * gui_fov_scale_hud );
 			
             drawSprite( 
                     mHungerBoxSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
-                    pos, gui_fov_effective_scale );
+                    pos, gui_fov_scale_hud );
                 
             if( i < ourLiveObject->foodStore ) {                
                 drawSprite( 
                     mHungerBoxFillSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
-                    pos, gui_fov_effective_scale );
+                    pos, gui_fov_scale_hud );
                 }
             else if( i < ourLiveObject->maxFoodStore ) {
                 drawSprite( 
                     mHungerBoxFillErasedSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
-                    pos, gui_fov_effective_scale );
+                    pos, gui_fov_scale_hud );
                 }
             }
         for( int i=ourLiveObject->foodCapacity; 
              i < ourLiveObject->maxFoodCapacity; i++ ) {
             // FOVMOD NOTE:  Change 11/15 - Take these lines during the merge process
-			doublePair pos = { lastScreenViewCenter.x - ( 590 * gui_fov_effective_scale ), 
-							   lastScreenViewCenter.y - ( 334 * gui_fov_effective_scale )};
-			if( gui_fov_scale_hud > 0 ) {
-				pos.x = lastScreenViewCenter.x - 590;
-				pos.y = lastScreenViewCenter.y - 334 - gui_fov_offset_y;
-				pos.x += i * 30;
-			} else {
-				pos.x += i * ( 30 * gui_fov_effective_scale );
-			}
+			doublePair pos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
+							   lastScreenViewCenter.y - ( recalcOffsetY( 334 ) * gui_fov_scale )};
+			pos.x += i * ( 30 * gui_fov_scale_hud );
             
             drawSprite( 
                 mHungerBoxErasedSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
-                pos, gui_fov_effective_scale );
+                pos, gui_fov_scale_hud );
             
             if( i < ourLiveObject->maxFoodStore ) {
                 drawSprite( 
                     mHungerBoxFillErasedSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
-                    pos, gui_fov_effective_scale );
+                    pos, gui_fov_scale_hud );
                 }
             }
         
@@ -7535,12 +7438,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 
         
         // FOVMOD NOTE:  Change 12/15 - Take these lines during the merge process
-        doublePair pos = { lastScreenViewCenter.x + ( 546 * gui_fov_effective_scale ), 
-                           lastScreenViewCenter.y - ( 319 * gui_fov_effective_scale )};
-        if( gui_fov_scale_hud > 0 ) {
-            pos.x = lastScreenViewCenter.x + 546;
-            pos.y = lastScreenViewCenter.y - 319 - gui_fov_offset_y;
-        }
+        doublePair pos = { lastScreenViewCenter.x + ( recalcOffsetX( 546 ) * gui_fov_scale ), 
+                           lastScreenViewCenter.y - ( recalcOffsetY( 319 ) * gui_fov_scale )};
 
         if( mCurrentArrowHeat != -1 ) {
             
@@ -7577,12 +7476,12 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             float v = 1.0 - a->fade;
             setDrawColor( v, v, v, 1 );
-            pos2.x += ( a->heat - 0.5 ) * ( 120 * gui_fov_effective_scale );
+            pos2.x += ( a->heat - 0.5 ) * ( 120 * gui_fov_scale_hud );
 
             // no sub pixel positions
             pos2.x = round( pos2.x );
 
-            drawSprite( mTempArrowErasedSprites[a->i], pos2, gui_fov_effective_scale );
+            drawSprite( mTempArrowErasedSprites[a->i], pos2, gui_fov_scale_hud );
             }
         toggleAdditiveTextureColoring( false );
         
@@ -7590,12 +7489,12 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         mCurrentArrowHeat = ourLiveObject->heat;
         
-        pos.x += ( mCurrentArrowHeat - 0.5 ) * ( 120 * gui_fov_effective_scale );
+        pos.x += ( mCurrentArrowHeat - 0.5 ) * ( 120 * gui_fov_scale_hud );
         
         // no sub pixel positions
         pos.x = round( pos.x );
         
-        drawSprite( mTempArrowSprites[mCurrentArrowI], pos, gui_fov_effective_scale );
+        drawSprite( mTempArrowSprites[mCurrentArrowI], pos, gui_fov_scale_hud );
         
         toggleMultiplicativeBlend( false );
         
@@ -7603,10 +7502,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         for( int i=0; i<mOldDesStrings.size(); i++ ) {
             // FOVMOD NOTE:  Change 13/15 - Take these lines during the merge process
             doublePair pos = { lastScreenViewCenter.x, 
-                               lastScreenViewCenter.y - ( 313 * gui_fov_effective_scale )};
-            if( gui_fov_scale_hud > 0 ) {
-                pos.y = lastScreenViewCenter.y - 313 - gui_fov_offset_y;
-            }
+                               lastScreenViewCenter.y - ( recalcOffsetY( 313 ) * gui_fov_scale )};
             float fade =
                 mOldDesFades.getElementDirect( i );
             
@@ -7616,13 +7512,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
 
         // FOVMOD NOTE:  Test, not sure if required
-        doublePair yumPos = { lastScreenViewCenter.x - ( 480 * gui_fov_effective_scale ), 
-                              lastScreenViewCenter.y - ( 313 * gui_fov_effective_scale )};
-        if( gui_fov_scale_hud > 0 ) {
-            yumPos.x = lastScreenViewCenter.x - 480;
-            yumPos.y = lastScreenViewCenter.y - 313 - gui_fov_offset_y;
-        }
-        
+        doublePair yumPos = { lastScreenViewCenter.x - ( recalcOffsetX( 480 ) * gui_fov_scale ), 
+                              lastScreenViewCenter.y - ( recalcOffsetY( 313 ) * gui_fov_scale )};
         setDrawColor( 0, 0, 0, 1 );
         if( mYumBonus > 0 ) {    
             char *yumString = autoSprintf( "+%d", mYumBonus );
@@ -7646,10 +7537,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         // FOVMOD NOTE:  Change 14/15 - Take these lines during the merge process
         doublePair atePos = { lastScreenViewCenter.x, 
-                              lastScreenViewCenter.y - ( 347 * gui_fov_effective_scale )};
-        if( gui_fov_scale_hud > 0 ) {
-            atePos.y = lastScreenViewCenter.y - 347 - gui_fov_offset_y;
-        }
+                              lastScreenViewCenter.y - ( recalcOffsetY( 347 ) * gui_fov_scale )};
         
         int shortestFill = 100;
         
@@ -7735,10 +7623,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             // FOVMOD NOTE:  Change 15/15 - Take these lines during the merge process
             doublePair pos = { lastScreenViewCenter.x, 
-                               lastScreenViewCenter.y - ( 313 * gui_fov_effective_scale )};
-            if( gui_fov_scale_hud > 0 ) {
-                pos.y = lastScreenViewCenter.y - 313 - gui_fov_offset_y;
-            }
+                               lastScreenViewCenter.y - ( recalcOffsetY( 313 ) * gui_fov_scale )};
 
             char *des = NULL;
             char *desToDelete = NULL;
@@ -9470,13 +9355,13 @@ void LivingLifePage::step() {
         double d = distance( mNotePaperPosTargetOffset, mNotePaperPosOffset );
         
         
-        if( d <= 1 ) {
+        if( d <= 1 * gui_fov_scale_hud ) {
             mNotePaperPosOffset = mNotePaperPosTargetOffset;
             }
         else {
-            int speed = frameRateFactor * 4;
+            double speed = frameRateFactor * 4 * gui_fov_scale_hud;
 
-            if( d < 8 ) {
+            if( d < 8 * gui_fov_scale_hud ) {
                 speed = lrint( frameRateFactor * d / 2 );
                 }
 
@@ -9484,8 +9369,8 @@ void LivingLifePage::step() {
                 speed = floor( d );
                 }
 
-            if( speed < 1 ) {
-                speed = 1;
+            if( speed < 1 * gui_fov_scale_hud ) {
+                speed = 1 * gui_fov_scale_hud;
                 }
             
             doublePair dir = normalize( delta );
@@ -9516,10 +9401,10 @@ void LivingLifePage::step() {
                                     &tooClose );
         
         if( homeArrow != -1 && ! tooClose ) {
-            mHomeSlipPosTargetOffset.y = mHomeSlipHideOffset.y + 68;
+            mHomeSlipPosTargetOffset.y = mHomeSlipHideOffset.y + 68 * gui_fov_scale_hud;
             
             if( homeDist > 1000 ) {
-                mHomeSlipPosTargetOffset.y += ( 20 * gui_fov_effective_scale );
+                mHomeSlipPosTargetOffset.y += ( 20 * gui_fov_scale_hud );
                 }
             }
         else {
@@ -9558,13 +9443,13 @@ void LivingLifePage::step() {
                 distance( mYumSlipPosTargetOffset[i], mYumSlipPosOffset[i] );
             
             
-            if( d <= 1 ) {
+            if( d <= 1 * gui_fov_scale_hud ) {
                 mYumSlipPosOffset[i] = mYumSlipPosTargetOffset[i];
                 }
             else {
-                int speed = frameRateFactor * 4;
+                double speed = frameRateFactor * 4 * gui_fov_scale_hud;
                 
-                if( d < 8 ) {
+                if( d < 8 * gui_fov_scale_hud ) {
                     speed = lrint( frameRateFactor * d / 2 );
                     }
                 
@@ -9572,8 +9457,8 @@ void LivingLifePage::step() {
                     speed = floor( d );
                     }
                 
-                if( speed < 1 ) {
-                    speed = 1;
+                if( speed < 1 * gui_fov_scale_hud ) {
+                    speed = 1 * gui_fov_scale_hud;
                     }
                 
                 doublePair dir = normalize( delta );
@@ -9595,13 +9480,13 @@ void LivingLifePage::step() {
         double d = distance( mHomeSlipPosTargetOffset, mHomeSlipPosOffset );
         
         
-        if( d <= 1 ) {
+        if( d <= 1 * gui_fov_scale_hud ) {
             mHomeSlipPosOffset = mHomeSlipPosTargetOffset;
             }
         else {
-            int speed = frameRateFactor * 4;
+            double speed = frameRateFactor * 4 * gui_fov_scale_hud;
 
-            if( d < 8 ) {
+            if( d < 8 * gui_fov_scale_hud ) {
                 speed = lrint( frameRateFactor * d / 2 );
                 }
 
@@ -9609,8 +9494,8 @@ void LivingLifePage::step() {
                 speed = floor( d );
                 }
 
-            if( speed < 1 ) {
-                speed = 1;
+            if( speed < 1 * gui_fov_scale_hud ) {
+                speed = 1 * gui_fov_scale_hud;
                 }
             
             doublePair dir = normalize( delta );
@@ -9672,10 +9557,10 @@ void LivingLifePage::step() {
             int i = mLiveHintSheetIndex;
 
             mHintTargetOffset[i] = mHintHideOffset[0];
-            mHintTargetOffset[i].y += 100;
+            mHintTargetOffset[i].y += 100 * gui_fov_scale_hud;
             
             if( mLastHintFilterString != NULL ) {
-                mHintTargetOffset[i].y += 30;
+                mHintTargetOffset[i].y += 30 * gui_fov_scale_hud;
                 }
             
 
@@ -9750,7 +9635,7 @@ void LivingLifePage::step() {
             mNumTotalHints[ lastSheet ] = 1;
             mHintMessageIndex[ lastSheet ] = 0;
             
-            mHintTargetOffset[ lastSheet ].y += 53;
+            mHintTargetOffset[ lastSheet ].y += 53 * gui_fov_scale_hud;
 
             if( mHintMessage[ lastSheet ] != NULL ) {
                 delete [] mHintMessage[ lastSheet ];
@@ -9789,13 +9674,13 @@ void LivingLifePage::step() {
             double d = distance( mHintTargetOffset[i], mHintPosOffset[i] );
             
             
-            if( d <= 1 ) {
+            if( d <= 1 * gui_fov_scale_hud ) {
                 mHintPosOffset[i] = mHintTargetOffset[i];                
                 }
             else {
-                int speed = frameRateFactor * 4;
+                double speed = frameRateFactor * 4 * gui_fov_scale_hud;
                 
-                if( d < 8 ) {
+                if( d < 8 * gui_fov_scale_hud ) {
                     speed = lrint( frameRateFactor * d / 2 );
                     }
                 
@@ -9803,8 +9688,8 @@ void LivingLifePage::step() {
                     speed = floor( d );
                     }
                 
-                if( speed < 1 ) {
-                    speed = 1;
+                if( speed < 1 * gui_fov_scale_hud ) {
+                    speed = 1 * gui_fov_scale_hud;
                     }
                 
                 doublePair dir = normalize( delta );
@@ -9930,7 +9815,7 @@ void LivingLifePage::step() {
             mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
                 mTutorialHideOffset[ mLiveTutorialSheetIndex ];
             
-            mTutorialTargetOffset[ mLiveTutorialSheetIndex ].y -= 100;
+            mTutorialTargetOffset[ mLiveTutorialSheetIndex ].y -= 100 * gui_fov_scale_hud;
             
             delete [] transString;
 
@@ -9971,13 +9856,13 @@ void LivingLifePage::step() {
                                  mTutorialPosOffset[i] );
             
             
-            if( d <= 1 ) {
+            if( d <= 1 * gui_fov_scale_hud ) {
                 mTutorialPosOffset[i] = mTutorialTargetOffset[i];
                 }
             else {
-                int speed = frameRateFactor * 4;
+                double speed = frameRateFactor * 4 * gui_fov_scale_hud;
                 
-                if( d < 8 ) {
+                if( d < 8 * gui_fov_scale_hud ) {
                     speed = lrint( frameRateFactor * d / 2 );
                     }
                 
@@ -9985,8 +9870,8 @@ void LivingLifePage::step() {
                     speed = floor( d );
                     }
                 
-                if( speed < 1 ) {
-                    speed = 1;
+                if( speed < 1 * gui_fov_scale_hud ) {
+                    speed = 1 * gui_fov_scale_hud;
                     }
                 
                 doublePair dir = normalize( delta );
@@ -10053,13 +9938,13 @@ void LivingLifePage::step() {
                                  mHungerSlipPosOffset[i] );
         
         
-            if( d <= 1 ) {
+            if( d <= 1 * gui_fov_scale_hud ) {
                 mHungerSlipPosOffset[i] = mHungerSlipPosTargetOffset[i];
                 }
             else {
-                int speed = frameRateFactor * 4;
+                double speed = frameRateFactor * 4 * gui_fov_scale_hud;
                 
-                if( d < 8 ) {
+                if( d < 8 * gui_fov_scale_hud ) {
                     speed = lrint( frameRateFactor * d / 2 );
                     }
                 
@@ -10067,8 +9952,8 @@ void LivingLifePage::step() {
                     speed = floor( d );
                     }
 
-                if( speed < 1 ) {
-                    speed = 1;
+                if( speed < 1 * gui_fov_scale_hud ) {
+                    speed = 1 * gui_fov_scale_hud;
                     }
                 
                 doublePair dir = normalize( delta );
@@ -12095,7 +11980,7 @@ void LivingLifePage::step() {
                             }
                         
                         if( slipIndexToShow >= 0 ) {
-                            mYumSlipPosTargetOffset[slipIndexToShow].y += 36;
+                            mYumSlipPosTargetOffset[slipIndexToShow].y += 36 * gui_fov_scale_hud;
                             }
 
                         if( existing->lastActionSendStartTime != 0 ) {
@@ -15089,7 +14974,7 @@ void LivingLifePage::step() {
                         mYumSlipHideOffset[ newSlipIndex ];
                     
                     if( mYumMultiplier > 0 ) {
-                        mYumSlipPosTargetOffset[ newSlipIndex ].y += 36;
+                        mYumSlipPosTargetOffset[ newSlipIndex ].y += 36 * gui_fov_scale_hud;
                         }
                     mYumSlipNumberToShow[ newSlipIndex ] = mYumMultiplier;
                     }
@@ -19099,9 +18984,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             int currentScaleHUD = SettingsManager::getIntSetting( "fovScaleHUD", 0 );
             int newScaleHUD = !currentScaleHUD;
             SettingsManager::setSetting( "fovScaleHUD", newScaleHUD );
-            gui_fov_scale_hud = newScaleHUD;
-            float scaleHUD = gui_fov_scale;			
-            changeHUDFOV( scaleHUD );
+            changeHUDFOV( gui_fov_scale );
             }
             break;
         case 127: // DEL
@@ -19598,16 +19481,12 @@ const char *LivingLifePage::findRandomLastName( char *inString ) {
 void LivingLifePage::agePanel( LiveObject* ourLiveObject, char displayPanel ) {
 	if ( ! displayPanel ) return;
 	setDrawColor( 1, 1, 1, 1 );
-	doublePair agePos = { lastScreenViewCenter.x + ( 85 * gui_fov_effective_scale ), 
-						  lastScreenViewCenter.y - ( 300 * gui_fov_effective_scale ) };
-	if( gui_fov_scale_hud > 0 ) {
-		agePos.x = lastScreenViewCenter.x + 85;
-		agePos.y = lastScreenViewCenter.y - 300 - gui_fov_offset_y;
-	}
-	drawSprite( mYumSlipSprites[2], agePos, 1.4 * gui_fov_effective_scale );
+	doublePair agePos = { lastScreenViewCenter.x + ( recalcOffsetX( 85 ) * gui_fov_scale ), 
+						  lastScreenViewCenter.y - ( recalcOffsetY( 300 ) * gui_fov_scale ) };
+	drawSprite( mYumSlipSprites[2], agePos, 1.4 * gui_fov_scale_hud );
 	setDrawColor( 0, 0, 0, 1 );
 	char *ageString = autoSprintf( "AGE: %d", (int)computeCurrentAge( ourLiveObject ) );
-	agePos.y += 18 * gui_fov_effective_scale;
+	agePos.y += 18 * gui_fov_scale_hud;
 	handwritingFont->drawString( ageString, agePos, alignCenter);
 }
 	
@@ -19640,20 +19519,13 @@ char* LivingLifePage::getFertilityStatus( LiveObject* targetObject ) {
 void LivingLifePage::lineageFertilityPanel( LiveObject* ourLiveObject, char displayPanel ) {
 	if ( ! displayPanel ) return;
 	setDrawColor( 1, 1, 1, 1 );
-	doublePair fertPos = { lastScreenViewCenter.x + ( 685 * gui_fov_effective_scale ), 
-						   lastScreenViewCenter.y + ( 305 * gui_fov_effective_scale ) };
-	if( gui_fov_scale_hud > 0 ) {
-		fertPos.x = lastScreenViewCenter.x + 685 + gui_fov_offset_x;
-		fertPos.y = lastScreenViewCenter.y + 305 + gui_fov_offset_y;
-	}
-	drawSprite( mHintSheetSprites[2], fertPos, gui_fov_effective_scale );
-	setDrawColor( 0, 0, 0, 1);
+	doublePair fertPos = { lastScreenViewCenter.x + ( recalcOffsetX( 685 ) * gui_fov_scale ), 
+						   lastScreenViewCenter.y + ( recalcOffsetY( 305 ) * gui_fov_scale ) };
+	drawSprite( mHintSheetSprites[2], fertPos, gui_fov_scale_hud );
+	setDrawColor( 0, 0, 0, 1 );
 	char *fertStringA = autoSprintf( "MOTHER IS:  " );
-	doublePair fertTextPos = { fertPos.x -= ( 300 * gui_fov_effective_scale ), 
-							   fertPos.y += ( 28 * gui_fov_effective_scale ) };
-	if( gui_fov_scale_hud > 0 ) {
-		fertTextPos = fertPos;
-	}
+	doublePair fertTextPos = { fertPos.x -= ( 300 * gui_fov_scale_hud ), 
+							   fertPos.y += ( 28 * gui_fov_scale_hud ) };
 	handwritingFont->drawString( fertStringA, fertTextPos, alignLeft );
 	SimpleVector<int> ourLin = ourLiveObject->lineage;
 	int relatedYoungFemales = 0;
@@ -19719,61 +19591,67 @@ void LivingLifePage::lineageFertilityPanel( LiveObject* ourLiveObject, char disp
 }
 
 
-void LivingLifePage::changeHUDFOV( float newScale ) {
+
+void LivingLifePage::changeHUDFOV( float newScale )
+{
 	if( newScale < 1 ) {
 		newScale = 1.0f;
 	} else if ( newScale > 6 ) {
 		newScale = 6.0f;
 	}
-    
-    SettingsManager::setSetting( "fovScale", newScale );
-    gui_fov_scale = newScale;
-    gui_fov_effective_scale = ( gui_fov_scale_hud ) ? 1.0f : gui_fov_scale;
-	gui_fov_offset_x = (int)(((1280 * newScale) - 1280)/2);
-	gui_fov_offset_y = (int)(((720 * newScale) - 720)/2);
+
+	gui_fov_scale = newScale;
+	gui_fov_target_scale_hud = SettingsManager::getIntSetting( "fovScaleHUD", 0 ) ? 1.f : gui_fov_scale;
+    SettingsManager::setSetting( "fovScale", gui_fov_scale );
+    gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;
+
+	calcOffsetHUD();
+
+	viewWidth = 1280 * newScale;
+	viewHeight = 720 * newScale;
+	setLetterbox( 1280 * newScale, 720 * newScale );
+	setViewSize( 1280 * newScale );
+
+	handwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
+	pencilFont->copySpacing( handwritingFont );
+	pencilErasedFont->copySpacing( handwritingFont );
+}
+
+void LivingLifePage::calcOffsetHUD()
+{
+	gui_fov_offset_x = (int)(((1280 * gui_fov_target_scale_hud) - 1280)/2);
+	gui_fov_offset_y = (int)(((720 * gui_fov_target_scale_hud) - 720)/2);
 	
 	
-	mNotePaperHideOffset.x = -242 * gui_fov_effective_scale;
-	mNotePaperHideOffset.y = -420 - gui_fov_offset_y;
+	mNotePaperHideOffset.x = recalcOffsetX( 242 ) * -gui_fov_scale;
+	mNotePaperHideOffset.y = recalcOffsetY( 420 ) * -gui_fov_scale;
 	mNotePaperPosOffset = mNotePaperHideOffset;
 	mNotePaperPosTargetOffset = mNotePaperPosOffset;
 	mErasedNoteCharOffsets.deleteAll();
-	
-	mHomeSlipHideOffset.y = (-360 * gui_fov_effective_scale) + ((64 * gui_fov_effective_scale) - 64);
-	if( gui_fov_scale_hud > 0 ) {
-		mHomeSlipHideOffset.y = -360 - gui_fov_offset_y;
-	}
+
+	mHomeSlipHideOffset.y = recalcOffsetY( 360 ) * -gui_fov_scale;
 	mHomeSlipPosOffset = mHomeSlipHideOffset;
 	mHomeSlipPosTargetOffset = mHomeSlipPosOffset;
 	for( int i=0; i<3; i++ ) {
-		mHungerSlipShowOffsets[i].x = -540 * gui_fov_effective_scale;
-		mHungerSlipShowOffsets[i].y = -250 * gui_fov_effective_scale;
-		mHungerSlipHideOffsets[i].x = -540 * gui_fov_effective_scale;
-		mHungerSlipHideOffsets[i].y = -370 * gui_fov_effective_scale;
-		if( gui_fov_scale_hud > 0 ) {
-			mHungerSlipShowOffsets[i].x = -540;
-			mHungerSlipShowOffsets[i].y = -250 - gui_fov_offset_y;
-			mHungerSlipHideOffsets[i].x = -540;
-			mHungerSlipHideOffsets[i].y = -370 - gui_fov_offset_y;
-		}
+		mHungerSlipShowOffsets[i].x = recalcOffsetX( 540 ) * -gui_fov_scale;
+		mHungerSlipShowOffsets[i].y = recalcOffsetY( 250 ) * -gui_fov_scale;
+		mHungerSlipHideOffsets[i].x = recalcOffsetX( 540 ) * -gui_fov_scale;
+		mHungerSlipHideOffsets[i].y = recalcOffsetY( 370 ) * -gui_fov_scale;
 		mHungerSlipPosOffset[i] = mHungerSlipHideOffsets[i];
 		mHungerSlipPosTargetOffset[i] = mHungerSlipPosOffset[i];
 	}
-	mHungerSlipShowOffsets[2].y += 20 * gui_fov_effective_scale;
-	mHungerSlipHideOffsets[2].y -= 20 * gui_fov_effective_scale;
-	mHungerSlipShowOffsets[2].y -= 50 * gui_fov_effective_scale;
-	mHungerSlipShowOffsets[1].y -= 30 * gui_fov_effective_scale;
-	mHungerSlipShowOffsets[0].y += 18 * gui_fov_effective_scale;
-    for( int i=0; i<NUM_YUM_SLIPS; i++ ) {;
-		mYumSlipHideOffset[i].x = ( -600 * gui_fov_effective_scale ) + ((64 * gui_fov_effective_scale) - 64);
-		mYumSlipHideOffset[i].y = ( -330 * gui_fov_effective_scale ) + ((32 * gui_fov_effective_scale) - 32);
-		if( gui_fov_scale_hud > 0 ) {
-			mYumSlipHideOffset[i].x = -600;
-			mYumSlipHideOffset[i].y = -330 - gui_fov_offset_y;
-		}
+	mHungerSlipShowOffsets[2].y += 20 * gui_fov_scale_hud;
+	mHungerSlipHideOffsets[2].y -= 20 * gui_fov_scale_hud;
+	mHungerSlipShowOffsets[2].y -= 50 * gui_fov_scale_hud;
+	mHungerSlipShowOffsets[1].y -= 30 * gui_fov_scale_hud;
+	mHungerSlipShowOffsets[0].y += 18 * gui_fov_scale_hud;
+    for( int i=0; i<NUM_YUM_SLIPS; i++ )
+	{
+		mYumSlipHideOffset[i].x = recalcOffsetX( 600 ) * -gui_fov_scale;
+		mYumSlipHideOffset[i].y = recalcOffsetY( 330 ) * -gui_fov_scale;
 	}
-	mYumSlipHideOffset[2].x += 70;
-    mYumSlipHideOffset[3].x += 80;
+	mYumSlipHideOffset[2].x += 70 * gui_fov_scale_hud;
+    mYumSlipHideOffset[3].x += 80 * gui_fov_scale_hud;
 	for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
 		mYumSlipPosOffset[i] = mYumSlipHideOffset[i];
 		mYumSlipPosTargetOffset[i] = mYumSlipHideOffset[i];
@@ -19786,33 +19664,18 @@ void LivingLifePage::changeHUDFOV( float newScale ) {
 	}
 	mYumSlipPosTargetOffset[ yumSlipIndex ] = mYumSlipHideOffset[ yumSlipIndex ];
 	if( mYumMultiplier > 0 ) {
-		mYumSlipPosTargetOffset[ yumSlipIndex ].y += 36;
+		mYumSlipPosTargetOffset[ yumSlipIndex ].y += 36 * gui_fov_scale_hud;
 	}
 	for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
-		mHintHideOffset[i].x = 900 * gui_fov_effective_scale;
-		mHintHideOffset[i].y = (-370 * gui_fov_effective_scale) + ((96 * gui_fov_effective_scale) - 96);
-		mHintTargetOffset[i] = mHintHideOffset[i];
-		mHintPosOffset[i] = mHintHideOffset[i];
-		mTutorialHideOffset[i].x = -914 * gui_fov_effective_scale;
-		mTutorialHideOffset[i].y = (430 * gui_fov_effective_scale) + ((96 * gui_fov_effective_scale) - 96);
+		mTutorialHideOffset[i].x = recalcOffsetX( 914 ) * ( i % 2 == 1 ) ? gui_fov_scale : -gui_fov_scale;
+		mTutorialHideOffset[i].y = recalcOffsetY( 430 ) * gui_fov_scale;
 		mTutorialTargetOffset[i] = mTutorialHideOffset[i];
 		mTutorialPosOffset[i] = mTutorialHideOffset[i];
-		if( gui_fov_scale_hud > 0 ) {
-			mHintHideOffset[i].x = 900 + gui_fov_offset_x;
-			mHintHideOffset[i].y = -370 - gui_fov_offset_y;
-			mHintTargetOffset[i] = mHintHideOffset[i];
-			mHintPosOffset[i] = mHintHideOffset[i];
-		}
+		mHintHideOffset[i].x = recalcOffsetX( 900 ) * gui_fov_scale;
+		mHintHideOffset[i].y = recalcOffsetY( 370 ) * -gui_fov_scale;
+		mHintTargetOffset[i] = mHintHideOffset[i];
+		mHintPosOffset[i] = mHintHideOffset[i];
 	}
 	mForceHintRefresh = true;
-	
-	viewWidth = 1280 * newScale;
-	viewHeight = 720 * newScale;
-	setLetterbox( 1280 * newScale, 720 * newScale );
-	setViewSize( 1280 * newScale );
-	
-	handwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_effective_scale );
-	pencilFont->copySpacing( handwritingFont );
-	pencilErasedFont->copySpacing( handwritingFont );
 }
 

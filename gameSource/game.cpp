@@ -164,9 +164,9 @@ doublePair lastScreenViewCenter = {0, 0 };
 
 // world width of one view
 // FOVMOD NOTE:  Change 1/3 - Take these lines during the merge process
-float gui_fov_scale = 1.0f;
-int gui_fov_scale_hud = 0;
-float gui_fov_effective_scale = ( gui_fov_scale_hud ) ? 1.0f : gui_fov_scale;
+float gui_fov_scale = 1.f;
+float gui_fov_target_scale_hud = 1.f;
+float gui_fov_scale_hud = 1.f;
 float gui_fov_preferred_min_scale = 1.5f;
 float gui_fov_preferred_max_scale = 3.0f;
 int gui_fov_offset_x = (int)(((1280 * gui_fov_scale) - 1280)/2);
@@ -204,27 +204,28 @@ void setFOVScale() {
     sanityCheckSettings( "fovScaleHUD" );
     sanityCheckSettings( "fovPreferredMin" );
     sanityCheckSettings( "fovPreferredMax" );
-    gui_fov_scale_hud = SettingsManager::getIntSetting( "fovScaleHUD", 0 );
-    SettingsManager::setSetting( "fovScaleHUD", gui_fov_scale_hud );
+
     gui_fov_scale = SettingsManager::getFloatSetting( "fovScale", 1.0f );
-    if( ! gui_fov_scale || gui_fov_scale < 1 ) {
-        SettingsManager::setSetting( "fovScale", 1.0f );
-    } else if ( gui_fov_scale > 6 ) {
-        SettingsManager::setSetting( "fovScale", 6.0f );
-    }
+    if( gui_fov_scale < 1.f ) gui_fov_scale = 1.f;
+	else if ( gui_fov_scale > 6.f ) gui_fov_scale = 6.f;
+	SettingsManager::setSetting( "fovScale", gui_fov_scale );
+
     gui_fov_preferred_min_scale = SettingsManager::getFloatSetting( "fovPreferredMin", 1.5f );
-    if( ! gui_fov_preferred_min_scale || gui_fov_preferred_min_scale < 1 ) {
-        SettingsManager::setSetting( "fovPreferredMin", 1.0f );
-    } else if ( gui_fov_preferred_min_scale > 6 ) {
-        SettingsManager::setSetting( "fovPreferredMin", 6.0f );
-    }
+    if( ! gui_fov_preferred_min_scale || gui_fov_preferred_min_scale < 1 )
+		gui_fov_preferred_min_scale = 1.f;
+    else if ( gui_fov_preferred_min_scale > 6 )
+		gui_fov_preferred_min_scale = 6.f;
+	SettingsManager::setSetting( "fovPreferredMin", gui_fov_preferred_min_scale );
+
     gui_fov_preferred_max_scale = SettingsManager::getFloatSetting( "fovPreferredMax", 3.0f );
-    if( ! gui_fov_preferred_max_scale || gui_fov_preferred_max_scale < 1 ) {
-        SettingsManager::setSetting( "fovPreferredMax", 1.0f );
-    } else if ( gui_fov_preferred_max_scale > 6 ) {
-        SettingsManager::setSetting( "fovPreferredMax", 6.0f );
-    }
-    gui_fov_effective_scale = ( gui_fov_scale_hud ) ? 1.0f : gui_fov_scale;
+    if( ! gui_fov_preferred_max_scale || gui_fov_preferred_max_scale < 1 )
+		gui_fov_preferred_max_scale = 1.f;
+	else if ( gui_fov_preferred_max_scale > 6 )
+		gui_fov_preferred_max_scale = 6.f;
+	SettingsManager::setSetting( "fovPreferredMax", gui_fov_preferred_max_scale );
+
+	gui_fov_target_scale_hud = SettingsManager::getIntSetting( "fovScaleHUD", 0 ) ? 1.f : gui_fov_scale;
+	gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;
     gui_fov_offset_x = (int)(((1280 * gui_fov_scale) - 1280)/2);
     gui_fov_offset_y = (int)(((720 * gui_fov_scale) - 720)/2);
     viewWidth = 1280 * gui_fov_scale;
@@ -635,17 +636,17 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
     
     // FOVMOD NOTE:  Change 3/3 - Take these lines during the merge process	
     handwritingFont = 
-        new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_effective_scale );
+        new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
 
     handwritingFont->setMinimumPositionPrecision( 1 );
 
     pencilFont = 
-        new Font( "font_pencil_32_32.tga", 3, 6, false, 16 * gui_fov_effective_scale );
+        new Font( "font_pencil_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
 
     pencilFont->setMinimumPositionPrecision( 1 );
 
     pencilErasedFont = 
-        new Font( "font_pencil_erased_32_32.tga", 3, 6, false, 16 * gui_fov_effective_scale );
+        new Font( "font_pencil_erased_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
 
     pencilErasedFont->setMinimumPositionPrecision( 1 );
 
