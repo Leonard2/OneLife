@@ -17436,6 +17436,19 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     if( ( mEKeyDown && mEKeyEnabled ) || isLastMouseButtonRight() ) {
         modClick = true;
         }
+
+	int mouseButton = getLastMouseButton();
+	if( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN )
+	{
+		float currentScale = SettingsManager::getFloatSetting( "fovScale", 1.0f );
+		float newScale = ( mouseButton == MouseButton::WHEELUP ) ? currentScale -= 0.5 : currentScale += 0.5;
+		if ( isShiftKeyDown() )
+		{
+			newScale = ( mouseButton == MouseButton::WHEELUP ) ? SettingsManager::getFloatSetting( "fovPreferredMin", 1.5f ) : SettingsManager::getFloatSetting( "fovPreferredMax", 3.0f );
+		}
+		changeFOV( newScale );
+		return;
+	}
     
     mLastMouseOverID = 0;
     
@@ -18980,13 +18993,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         case 92: // backslash
             showFertilityPanel = !showFertilityPanel;
             break;
-        case 96: { // grave
-            int currentScaleHUD = SettingsManager::getIntSetting( "fovScaleHUD", 0 );
-            int newScaleHUD = !currentScaleHUD;
-            SettingsManager::setSetting( "fovScaleHUD", newScaleHUD );
-            changeHUDFOV( gui_fov_scale );
-            }
-            break;
         case 127: // DEL
 		{
 			if( isShiftKeyDown() )
@@ -19246,7 +19252,7 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
     }
 	if( inKeyCode == MG_KEY_LEFT || 
 		inKeyCode == MG_KEY_RIGHT ) {
-		float currentScale = SettingsManager::getFloatSetting( "fovScale", 1.0f );
+		float currentScale = SettingsManager::getFloatSetting( "fovScaleHUD", 1.0f );
 		float newScale = ( inKeyCode == MG_KEY_LEFT ) ? currentScale -= 0.5 : currentScale += 0.5;
         if ( isShiftKeyDown() ) {
             newScale = ( inKeyCode == MG_KEY_LEFT ) ? SettingsManager::getFloatSetting( "fovPreferredMin", 1.5f ) : SettingsManager::getFloatSetting( "fovPreferredMax", 3.0f );
@@ -19592,6 +19598,36 @@ void LivingLifePage::lineageFertilityPanel( LiveObject* ourLiveObject, char disp
 
 
 
+void LivingLifePage::calcFontScale( float newScale, Font *font )
+{
+	float scale = font->getScaleFactor();
+	scale /= gui_fov_scale;
+	scale *= newScale;
+	font->setScaleFactor( scale );
+}
+
+void LivingLifePage::changeFOV( float newScale )
+{
+	if( newScale < 1.f )
+		newScale = 1.f;
+	else if( newScale > 6.f )
+		newScale = 6.f;
+
+	SettingsManager::setSetting( "fovScale", newScale );
+	calcFontScale( newScale, handwritingFont );
+	calcFontScale( newScale, pencilFont );
+	calcFontScale( newScale, pencilErasedFont );
+	gui_fov_scale = newScale;
+	gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;
+
+	calcOffsetHUD();
+
+	viewWidth = 1280 * newScale;
+	viewHeight = 720 * newScale;
+	setLetterbox( 1280 * newScale, 720 * newScale );
+	setViewSize( 1280 * newScale );
+}
+
 void LivingLifePage::changeHUDFOV( float newScale )
 {
 	if( newScale < 1 ) {
@@ -19600,17 +19636,11 @@ void LivingLifePage::changeHUDFOV( float newScale )
 		newScale = 6.0f;
 	}
 
-	gui_fov_scale = newScale;
-	gui_fov_target_scale_hud = SettingsManager::getIntSetting( "fovScaleHUD", 0 ) ? 1.f : gui_fov_scale;
-    SettingsManager::setSetting( "fovScale", gui_fov_scale );
+	gui_fov_target_scale_hud = newScale;
+    SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
     gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;
 
 	calcOffsetHUD();
-
-	viewWidth = 1280 * newScale;
-	viewHeight = 720 * newScale;
-	setLetterbox( 1280 * newScale, 720 * newScale );
-	setViewSize( 1280 * newScale );
 
 	handwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
 	pencilFont->copySpacing( handwritingFont );
