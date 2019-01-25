@@ -103,6 +103,9 @@ extern float gui_fov_preferred_min_scale;
 extern float gui_fov_preferred_max_scale;
 extern int gui_fov_offset_x;
 extern int gui_fov_offset_y;
+static SpriteHandle guiPanelLeftSprite;
+static SpriteHandle guiPanelTileSprite;
+static SpriteHandle guiPanelRightSprite;
 
 // NAMEMOD NOTE:  Change 1/2 - Take these lines during the merge process
 extern char *firstNames;
@@ -2100,6 +2103,24 @@ LivingLifePage::LivingLifePage()
 	//
 	calcOffsetHUD();
 
+	Image *tempImage = readTGAFile( "guiPanel.tga" );
+	Image *tempImage2;
+
+	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 640, 0, 512, tempImage->getHeight() );
+	guiPanelLeftSprite = fillSprite( tempImage2 );
+	delete tempImage2;
+
+	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 128, 0, 256, tempImage->getHeight() );
+	guiPanelTileSprite = fillSprite( tempImage2 );
+	setSpriteWrapping( guiPanelTileSprite, true, false );
+	delete tempImage2;
+
+	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 + 640 - 512, 0, 512, tempImage->getHeight() );
+	guiPanelRightSprite = fillSprite( tempImage2 );
+	delete tempImage2;
+
+	delete tempImage;
+	//
 
     mMap = new int[ mMapD * mMapD ];
     mMapBiomes = new int[ mMapD * mMapD ];
@@ -2355,6 +2376,11 @@ LivingLifePage::~LivingLifePage() {
 
     freeSprite( mGuiPanelSprite );
     freeSprite( mGuiBloodSprite );
+
+	//
+	freeSprite( guiPanelLeftSprite );
+	freeSprite( guiPanelTileSprite );
+	freeSprite( guiPanelRightSprite );
     
     freeSprite( mFloorSplitSprite );
     
@@ -7330,16 +7356,33 @@ void LivingLifePage::draw( doublePair inViewCenter,
     setDrawColor( 1, 1, 1, 1 );
     doublePair panelPos = lastScreenViewCenter;
     // FOVMOD NOTE:  Change 8/15 - Take these lines during the merge process
+	// [Leo] Proper widescreen hud.
 	panelPos.y -= recalcOffsetY( 242 + 32 + 16 + 6 ) * gui_fov_scale;
-	// Ugly "hack" for hint [TAB] being cut off at the bottom.
-	if( gui_fov_target_scale_hud > 1.f && gui_fov_target_scale_hud <= 2.f ) {
-		panelPos.x -= 900 * gui_fov_scale_hud;
-		drawSprite( mGuiPanelSprite, panelPos, gui_fov_scale_hud );
-		panelPos.x += 1810 * gui_fov_scale_hud;
-		drawSprite( mGuiPanelSprite, panelPos, gui_fov_scale_hud );
-		panelPos.x -= 910 * gui_fov_scale_hud;
-		}
-    drawSprite( mGuiPanelSprite, panelPos, gui_fov_scale_hud );
+	// First left part.
+	panelPos.x = lastScreenViewCenter.x - recalcOffsetX( 384 ) * gui_fov_scale;
+	drawSprite( guiPanelLeftSprite, panelPos, gui_fov_scale_hud );
+	// Tile a part of the bar to fill the gap in the middle.
+	doublePair middlePos[4] =
+	{
+		{ lastScreenViewCenter.x - recalcOffsetX( 128 ) * gui_fov_scale, lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale + getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud },
+		{ lastScreenViewCenter.x + recalcOffsetX( 128 ) * gui_fov_scale, lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale + getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud },
+		{ lastScreenViewCenter.x + recalcOffsetX( 128 ) * gui_fov_scale, lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale },
+		{ lastScreenViewCenter.x - recalcOffsetX( 128 ) * gui_fov_scale, lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale }
+	};
+	double gapLength = abs( middlePos[0].x - middlePos[1].x ) / ( 256. * gui_fov_scale_hud );
+	doublePair middleTexCoords[4] =
+	{
+		{ 0.f, 0.f },
+		{ gapLength, 0.f },
+		{ gapLength, 1.f },
+		{ 0.f , 1.f },
+	};
+	drawSprite( guiPanelTileSprite, middlePos, middleTexCoords );
+	// And finally draw the right end.
+	panelPos.x = lastScreenViewCenter.x + recalcOffsetX( 384 ) * gui_fov_scale;
+    drawSprite( guiPanelRightSprite, panelPos, gui_fov_scale_hud );
+	panelPos.x = lastScreenViewCenter.x;
+
 
     if( ourLiveObject != NULL &&
         ourLiveObject->dying  &&
