@@ -197,13 +197,27 @@ static double recalcOffsetX( double x, bool force = false )
 {
 	double res;
 	if( hud_mode == 0 || force )
-		res = double(( x + gui_fov_offset_x ) / ( 1280 / 2 * gui_fov_target_scale_hud )) * ( 1280 / 2 );
+	{
+		res = x + ( ( x > 0. ) ? gui_fov_offset_x : -gui_fov_offset_x );
+		res /= 640. * gui_fov_target_scale_hud;
+		res *= 640.;
+	}
 	else res = x / gui_fov_target_scale_hud;
 	return res;
 }
 static double recalcOffsetY( double y )
 {
-	return double(( y + gui_fov_offset_y ) / ( 720 / 2 * gui_fov_target_scale_hud )) * ( 720 / 2 );
+	double res;
+	res = y + ( ( y > 0. ) ? gui_fov_offset_y : -gui_fov_offset_y );
+	res /= 360. * gui_fov_target_scale_hud;
+	res *= 360.;
+	return res;
+}
+static doublePair recalcOffset( doublePair ofs, bool force = false )
+{
+	ofs.x = recalcOffsetX( ofs.x, force );
+	ofs.y = recalcOffsetY( ofs.y );
+	return ofs;
 }
 
 
@@ -2035,6 +2049,48 @@ LivingLifePage::LivingLifePage()
     addComponent( &mSayField );
     
     mSayField.unfocus();
+    
+    
+    mNotePaperHideOffset.x = -242;
+    mNotePaperHideOffset.y = -420;
+
+
+    mHomeSlipHideOffset.x = 0;
+    mHomeSlipHideOffset.y = -360;
+
+
+    for( int i=0; i<NUM_YUM_SLIPS; i++ ) {    
+        mYumSlipHideOffset[i].x = -600;
+        mYumSlipHideOffset[i].y = -330;
+        }
+    
+    mYumSlipHideOffset[2].x += 70;
+    mYumSlipHideOffset[3].x += 80;
+
+    for( int i=0; i<NUM_YUM_SLIPS; i++ ) {    
+        mYumSlipPosOffset[i] = mYumSlipHideOffset[i];
+        mYumSlipPosTargetOffset[i] = mYumSlipHideOffset[i];
+        }
+    
+
+    for( int i=0; i<3; i++ ) {    
+        mHungerSlipShowOffsets[i].x = -540;
+        mHungerSlipShowOffsets[i].y = -250;
+    
+        mHungerSlipHideOffsets[i].x = -540;
+        mHungerSlipHideOffsets[i].y = -370;
+        
+        mHungerSlipWiggleTime[i] = 0;
+        mHungerSlipWiggleAmp[i] = 0;
+        mHungerSlipWiggleSpeed[i] = 0.05;
+        }
+    mHungerSlipShowOffsets[2].y += 20;
+    mHungerSlipHideOffsets[2].y -= 20;
+
+    mHungerSlipShowOffsets[2].y -= 50;
+    mHungerSlipShowOffsets[1].y -= 30;
+    mHungerSlipShowOffsets[0].y += 18;
+
 
     mHungerSlipWiggleAmp[1] = 0.5;
     mHungerSlipWiggleAmp[2] = 0.5;
@@ -2044,6 +2100,12 @@ LivingLifePage::LivingLifePage()
     mStarvingSlipLastPos[0] = 0;
     mStarvingSlipLastPos[1] = 0;
     
+
+    for( int i=0; i<3; i++ ) {    
+        mHungerSlipPosOffset[i] = mHungerSlipHideOffsets[i];
+        mHungerSlipPosTargetOffset[i] = mHungerSlipPosOffset[i];
+        }
+    
     mHungerSlipVisible = -1;
 
     
@@ -2052,6 +2114,12 @@ LivingLifePage::LivingLifePage()
         char *name = autoSprintf( "hintSheet%d.tga", i + 1 );    
         mHintSheetSprites[i] = loadSprite( name, false );
         delete [] name;
+        
+        mHintHideOffset[i].x = 900;
+        mHintHideOffset[i].y = -370;
+        
+        mHintTargetOffset[i] = mHintHideOffset[i];
+        mHintPosOffset[i] = mHintHideOffset[i];
         
         mHintExtraOffset[i].x = 0;
         mHintExtraOffset[i].y = 0;
@@ -2089,12 +2157,19 @@ LivingLifePage::LivingLifePage()
 
     for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
         
+        mTutorialHideOffset[i].x = -914;
         mTutorialFlips[i] = false;
         
         if( i % 2 == 1 ) {
             // odd on right side of screen
+            mTutorialHideOffset[i].x = 914;
             mTutorialFlips[i] = true;
             }
+        
+        mTutorialHideOffset[i].y = 430;
+        
+        mTutorialTargetOffset[i] = mTutorialHideOffset[i];
+        mTutorialPosOffset[i] = mTutorialHideOffset[i];
 
         mTutorialExtraOffset[i].x = 0;
         mTutorialExtraOffset[i].y = 0;
@@ -6716,7 +6791,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
     
 
 
-    doublePair slipPos = add( mHomeSlipPosOffset, lastScreenViewCenter );
+    doublePair slipPos = add( mult( recalcOffset( mHomeSlipPosOffset ), gui_fov_scale ), lastScreenViewCenter );
     
     if( ! equal( mHomeSlipPosOffset, mHomeSlipHideOffset ) ) {
         setDrawColor( 1, 1, 1, 1 );
@@ -6916,7 +6991,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
     int lineSpacing = 20 * gui_fov_scale_hud;
 
-    doublePair notePos = add( mNotePaperPosOffset, lastScreenViewCenter );
+    doublePair notePos = add( mult( recalcOffset( mNotePaperPosOffset ), gui_fov_scale ), lastScreenViewCenter );
 
     if( ! equal( mNotePaperPosOffset, mNotePaperHideOffset ) ) {
         setDrawColor( 1, 1, 1, 1 );
@@ -6941,7 +7016,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
     
 
-    doublePair paperPos = add( mNotePaperPosOffset, lastScreenViewCenter );
+    doublePair paperPos = add( mult( recalcOffset( mNotePaperPosOffset ), gui_fov_scale ), lastScreenViewCenter );
 
     if( mSayField.isFocused() ) {
         char *partialSay = mSayField.getText();
@@ -6952,10 +7027,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         SimpleVector<char*> *lines = splitLines( strUpper, ( 345 * gui_fov_scale_hud ) );
         
-        mNotePaperPosTargetOffset.y = mNotePaperHideOffset.y + 58 * gui_fov_scale_hud;
+        mNotePaperPosTargetOffset.y = mNotePaperHideOffset.y + 58;
         
         if( lines->size() > 1 ) {    
-            mNotePaperPosTargetOffset.y += (20 * gui_fov_scale_hud) * ( lines->size() - 1 );
+            mNotePaperPosTargetOffset.y += 20 * ( lines->size() - 1 );
             }
         
         doublePair drawPos = paperPos;
@@ -6994,7 +7069,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 mErasedNoteChars.push_back( oldString[j] );
                        
                 mErasedNoteCharOffsets.push_back(
-                    sub( charPos.getElementDirect( j ),
+                    sub( mult( charPos.getElementDirect( j ), 1. / gui_fov_scale_hud ),
                          paperPos ) );
                 
                 mErasedNoteCharFades.push_back( 1.0f );
@@ -7038,7 +7113,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             for( int j=0; j<lineSize; j++ ) {
                 mCurrentNoteChars.push_back( line[j] );
                 mCurrentNoteCharOffsets.push_back( 
-                    sub( charPos.getElementDirect( j ), paperPos ) );
+                    sub( mult( charPos.getElementDirect( j ), 1. / gui_fov_scale_hud ), paperPos ) );
                 }
 
             drawPos.y -= lineSpacing;
@@ -7071,7 +7146,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 mErasedNoteChars.push_back( oldString[j] );
                         
                 mErasedNoteCharOffsets.push_back(
-                    sub( charPos.getElementDirect( j ),
+                    sub( mult( charPos.getElementDirect( j ), 1. / gui_fov_scale_hud ),
                          paperPos ) );
                 
                 mErasedNoteCharFades.push_back( 1.0f );
@@ -7090,9 +7165,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
             mHintMessage[i] != NULL ) {
             
             doublePair hintPos  = 
-                add( mHintPosOffset[i], lastScreenViewCenter );
+                add( mult( recalcOffset( mHintPosOffset[i] ), gui_fov_scale ), lastScreenViewCenter );
             
-            hintPos = add( hintPos, mHintExtraOffset[i] );
+            hintPos = add( hintPos, mult( mHintExtraOffset[i], gui_fov_scale_hud ) );
 
 
             char *pageNum = NULL;
@@ -7192,7 +7267,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 lineStart = hintPos;
                 lineStart.x -= (280 * gui_fov_scale_hud);
                 
-                lineStart.x -= mHintExtraOffset[i].x;
+                lineStart.x -= mHintExtraOffset[i].x * gui_fov_scale_hud;
                 lineStart.x += (20 * gui_fov_scale_hud);
                 
                 lineStart.y += (30 * gui_fov_scale_hud);
@@ -7218,13 +7293,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
         if( ! equal( mTutorialPosOffset[i], mTutorialHideOffset[i] ) ) {
             
             doublePair tutorialPos  = 
-                add( mTutorialPosOffset[i], lastScreenViewCenter );
+                add( mult( recalcOffset( mTutorialPosOffset[i], true ), gui_fov_scale ), lastScreenViewCenter );
             
             if( i % 2 == 1 ) {
-                tutorialPos = add( tutorialPos, mTutorialExtraOffset[i] );
+                tutorialPos = sub( tutorialPos, mult( mTutorialExtraOffset[i], gui_fov_scale_hud ) );
                 }
             else {
-                tutorialPos = sub( tutorialPos, mTutorialExtraOffset[i] );
+                tutorialPos = add( tutorialPos, mult( mTutorialExtraOffset[i], gui_fov_scale_hud ) );
                 }
             
             setDrawColor( 1, 1, 1, 1 );
@@ -7244,11 +7319,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             if( i % 2 == 1 ) {
                 lineStart.x -= 289 * gui_fov_scale_hud;
-                //lineStart.x += mTutorialExtraOffset[i].x;
+                //lineStart.x += mTutorialExtraOffset[i].x * gui_fov_scale_hud;
                 }
             else {
                 lineStart.x += 289 * gui_fov_scale_hud;
-                lineStart.x -= mTutorialExtraOffset[i].x;
+                lineStart.x -= mTutorialExtraOffset[i].x * gui_fov_scale_hud;
                 }
             
             lineStart.y += 8 * gui_fov_scale_hud;
@@ -7281,7 +7356,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             drawCharacterSprite( 
                 mErasedNoteChars.getElementDirect( i ), 
                 add( paperPos, 
-                     mErasedNoteCharOffsets.getElementDirect( i ) ) );
+                     mult( mErasedNoteCharOffsets.getElementDirect( i ), gui_fov_scale_hud ) ) );
         }
 
 
@@ -7291,7 +7366,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
     for( int i=0; i<3; i++ ) { 
         if( !equal( mHungerSlipPosOffset[i], mHungerSlipHideOffsets[i] ) ) {
             doublePair slipPos = lastScreenViewCenter;
-            slipPos = add( slipPos, mHungerSlipPosOffset[i] );
+            slipPos = add( slipPos, mult( recalcOffset( mHungerSlipPosOffset[i] ), gui_fov_scale ) );
             
             if( mHungerSlipWiggleAmp[i] > 0 ) {
                 
@@ -7354,7 +7429,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         if( ! equal( mYumSlipPosOffset[i], mYumSlipHideOffset[i] ) ) {
             doublePair slipPos = 
-                add( mYumSlipPosOffset[i], lastScreenViewCenter );
+                add( mult( recalcOffset( mYumSlipPosOffset[i] ), gui_fov_scale ), lastScreenViewCenter );
             setDrawColor( 1, 1, 1, 1 );
             drawSprite( mYumSlipSprites[i], slipPos, gui_fov_scale_hud );
             
@@ -9458,13 +9533,13 @@ void LivingLifePage::step() {
         double d = distance( mNotePaperPosTargetOffset, mNotePaperPosOffset );
         
         
-        if( d <= 1 * gui_fov_scale_hud ) {
+        if( d <= 1 ) {
             mNotePaperPosOffset = mNotePaperPosTargetOffset;
             }
         else {
-            double speed = frameRateFactor * 4 * gui_fov_scale_hud;
+            double speed = frameRateFactor * 4;
 
-            if( d < 8 * gui_fov_scale_hud ) {
+            if( d < 8 ) {
                 speed = lrint( frameRateFactor * d / 2 );
                 }
 
@@ -9472,8 +9547,8 @@ void LivingLifePage::step() {
                 speed = floor( d );
                 }
 
-            if( speed < 1 * gui_fov_scale_hud ) {
-                speed = 1 * gui_fov_scale_hud;
+            if( speed < 1 ) {
+                speed = 1;
                 }
             
             doublePair dir = normalize( delta );
@@ -9504,10 +9579,10 @@ void LivingLifePage::step() {
                                     &tooClose );
         
         if( homeArrow != -1 && ! tooClose ) {
-            mHomeSlipPosTargetOffset.y = mHomeSlipHideOffset.y + 68 * gui_fov_scale_hud;
+            mHomeSlipPosTargetOffset.y = mHomeSlipHideOffset.y + 68;
             
             if( homeDist > 1000 ) {
-                mHomeSlipPosTargetOffset.y += ( 20 * gui_fov_scale_hud );
+                mHomeSlipPosTargetOffset.y += 20;
                 }
             }
         else {
@@ -9546,13 +9621,13 @@ void LivingLifePage::step() {
                 distance( mYumSlipPosTargetOffset[i], mYumSlipPosOffset[i] );
             
             
-            if( d <= 1 * gui_fov_scale_hud ) {
+            if( d <= 1 ) {
                 mYumSlipPosOffset[i] = mYumSlipPosTargetOffset[i];
                 }
             else {
-                double speed = frameRateFactor * 4 * gui_fov_scale_hud;
+                double speed = frameRateFactor * 4;
                 
-                if( d < 8 * gui_fov_scale_hud ) {
+                if( d < 8 ) {
                     speed = lrint( frameRateFactor * d / 2 );
                     }
                 
@@ -9560,8 +9635,8 @@ void LivingLifePage::step() {
                     speed = floor( d );
                     }
                 
-                if( speed < 1 * gui_fov_scale_hud ) {
-                    speed = 1 * gui_fov_scale_hud;
+                if( speed < 1 ) {
+                    speed = 1;
                     }
                 
                 doublePair dir = normalize( delta );
@@ -9583,13 +9658,13 @@ void LivingLifePage::step() {
         double d = distance( mHomeSlipPosTargetOffset, mHomeSlipPosOffset );
         
         
-        if( d <= 1 * gui_fov_scale_hud ) {
+        if( d <= 1 ) {
             mHomeSlipPosOffset = mHomeSlipPosTargetOffset;
             }
         else {
-            double speed = frameRateFactor * 4 * gui_fov_scale_hud;
+            double speed = frameRateFactor * 4;
 
-            if( d < 8 * gui_fov_scale_hud ) {
+            if( d < 8 ) {
                 speed = lrint( frameRateFactor * d / 2 );
                 }
 
@@ -9597,8 +9672,8 @@ void LivingLifePage::step() {
                 speed = floor( d );
                 }
 
-            if( speed < 1 * gui_fov_scale_hud ) {
-                speed = 1 * gui_fov_scale_hud;
+            if( speed < 1 ) {
+                speed = 1;
                 }
             
             doublePair dir = normalize( delta );
@@ -9660,10 +9735,10 @@ void LivingLifePage::step() {
             int i = mLiveHintSheetIndex;
 
             mHintTargetOffset[i] = mHintHideOffset[0];
-            mHintTargetOffset[i].y += 100 * gui_fov_scale_hud;
+            mHintTargetOffset[i].y += 100;
             
             if( mLastHintFilterString != NULL ) {
-                mHintTargetOffset[i].y += 30 * gui_fov_scale_hud;
+                mHintTargetOffset[i].y += 30;
                 }
             
 
@@ -9701,7 +9776,7 @@ void LivingLifePage::step() {
                 }
             delete [] lines;
 
-            mHintExtraOffset[ i ].x = - longestLine;
+            mHintExtraOffset[ i ].x = - longestLine / gui_fov_scale_hud;
             }
         }
     else if( ourObject != NULL && mNextHintObjectID != 0 &&
@@ -9738,7 +9813,7 @@ void LivingLifePage::step() {
             mNumTotalHints[ lastSheet ] = 1;
             mHintMessageIndex[ lastSheet ] = 0;
             
-            mHintTargetOffset[ lastSheet ].y += 53 * gui_fov_scale_hud;
+            mHintTargetOffset[ lastSheet ].y += 53;
 
             if( mHintMessage[ lastSheet ] != NULL ) {
                 delete [] mHintMessage[ lastSheet ];
@@ -9750,7 +9825,7 @@ void LivingLifePage::step() {
             double len = 
                 handwritingFont->measureString( mHintMessage[ lastSheet ] );
             
-            mHintExtraOffset[ lastSheet ].x = - len;
+            mHintExtraOffset[ lastSheet ].x = - len / gui_fov_scale_hud;
             }
         
         }
@@ -9777,13 +9852,13 @@ void LivingLifePage::step() {
             double d = distance( mHintTargetOffset[i], mHintPosOffset[i] );
             
             
-            if( d <= 1 * gui_fov_scale_hud ) {
+            if( d <= 1 ) {
                 mHintPosOffset[i] = mHintTargetOffset[i];                
                 }
             else {
-                double speed = frameRateFactor * 4 * gui_fov_scale_hud;
+                double speed = frameRateFactor * 4;
                 
-                if( d < 8 * gui_fov_scale_hud ) {
+                if( d < 8 ) {
                     speed = lrint( frameRateFactor * d / 2 );
                     }
                 
@@ -9791,8 +9866,8 @@ void LivingLifePage::step() {
                     speed = floor( d );
                     }
                 
-                if( speed < 1 * gui_fov_scale_hud ) {
-                    speed = 1 * gui_fov_scale_hud;
+                if( speed < 1 ) {
+                    speed = 1;
                     }
                 
                 doublePair dir = normalize( delta );
@@ -9918,7 +9993,7 @@ void LivingLifePage::step() {
             mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
                 mTutorialHideOffset[ mLiveTutorialSheetIndex ];
             
-            mTutorialTargetOffset[ mLiveTutorialSheetIndex ].y -= 100 * gui_fov_scale_hud;
+            mTutorialTargetOffset[ mLiveTutorialSheetIndex ].y -= 100;
             
             delete [] transString;
 
@@ -9939,7 +10014,7 @@ void LivingLifePage::step() {
                 }
             delete [] lines;
 
-            mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine;
+            mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine / gui_fov_scale_hud;
             }
         }
     
@@ -9959,13 +10034,13 @@ void LivingLifePage::step() {
                                  mTutorialPosOffset[i] );
             
             
-            if( d <= 1 * gui_fov_scale_hud ) {
+            if( d <= 1 ) {
                 mTutorialPosOffset[i] = mTutorialTargetOffset[i];
                 }
             else {
-                double speed = frameRateFactor * 4 * gui_fov_scale_hud;
+                double speed = frameRateFactor * 4;
                 
-                if( d < 8 * gui_fov_scale_hud ) {
+                if( d < 8 ) {
                     speed = lrint( frameRateFactor * d / 2 );
                     }
                 
@@ -9973,8 +10048,8 @@ void LivingLifePage::step() {
                     speed = floor( d );
                     }
                 
-                if( speed < 1 * gui_fov_scale_hud ) {
-                    speed = 1 * gui_fov_scale_hud;
+                if( speed < 1 ) {
+                    speed = 1;
                     }
                 
                 doublePair dir = normalize( delta );
@@ -10041,13 +10116,13 @@ void LivingLifePage::step() {
                                  mHungerSlipPosOffset[i] );
         
         
-            if( d <= 1 * gui_fov_scale_hud ) {
+            if( d <= 1 ) {
                 mHungerSlipPosOffset[i] = mHungerSlipPosTargetOffset[i];
                 }
             else {
-                double speed = frameRateFactor * 4 * gui_fov_scale_hud;
+                double speed = frameRateFactor * 4;
                 
-                if( d < 8 * gui_fov_scale_hud ) {
+                if( d < 8 ) {
                     speed = lrint( frameRateFactor * d / 2 );
                     }
                 
@@ -10055,8 +10130,8 @@ void LivingLifePage::step() {
                     speed = floor( d );
                     }
 
-                if( speed < 1 * gui_fov_scale_hud ) {
-                    speed = 1 * gui_fov_scale_hud;
+                if( speed < 1 ) {
+                    speed = 1;
                     }
                 
                 doublePair dir = normalize( delta );
@@ -12083,7 +12158,7 @@ void LivingLifePage::step() {
                             }
                         
                         if( slipIndexToShow >= 0 ) {
-                            mYumSlipPosTargetOffset[slipIndexToShow].y += 36 * gui_fov_scale_hud;
+                            mYumSlipPosTargetOffset[slipIndexToShow].y += 36;
                             }
 
                         if( existing->lastActionSendStartTime != 0 ) {
@@ -15077,7 +15152,7 @@ void LivingLifePage::step() {
                         mYumSlipHideOffset[ newSlipIndex ];
                     
                     if( mYumMultiplier > 0 ) {
-                        mYumSlipPosTargetOffset[ newSlipIndex ].y += 36 * gui_fov_scale_hud;
+                        mYumSlipPosTargetOffset[ newSlipIndex ].y += 36;
                         }
                     mYumSlipNumberToShow[ newSlipIndex ] = mYumMultiplier;
                     }
@@ -19441,7 +19516,7 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
                 for( int i=0; i<mCurrentNoteChars.size(); i++ ) {
                     char c = mCurrentNoteChars.getElementDirect( i );
                     doublePair pos = 
-                        mCurrentNoteCharOffsets.getElementDirect( i );
+                        mult( mCurrentNoteCharOffsets.getElementDirect( i ), gui_fov_scale_hud );
                     
                     for( int j=0; j<mErasedNoteChars.size(); j++ ) {
                         if( mErasedNoteChars.getElementDirect(j) == c 
@@ -19761,61 +19836,5 @@ void LivingLifePage::calcOffsetHUD()
 {
 	gui_fov_offset_x = (int)(((1280 * gui_fov_target_scale_hud) - 1280)/2);
 	gui_fov_offset_y = (int)(((720 * gui_fov_target_scale_hud) - 720)/2);
-	
-	
-	mNotePaperHideOffset.x = recalcOffsetX( 242 ) * -gui_fov_scale;
-	mNotePaperHideOffset.y = recalcOffsetY( 420 ) * -gui_fov_scale;
-	mNotePaperPosOffset = mNotePaperHideOffset;
-	mNotePaperPosTargetOffset = mNotePaperPosOffset;
-	mErasedNoteCharOffsets.deleteAll();
-
-	mHomeSlipHideOffset.y = recalcOffsetY( 360 ) * -gui_fov_scale;
-	mHomeSlipPosOffset = mHomeSlipHideOffset;
-	mHomeSlipPosTargetOffset = mHomeSlipPosOffset;
-	for( int i=0; i<3; i++ ) {
-		mHungerSlipShowOffsets[i].x = recalcOffsetX( 540 ) * -gui_fov_scale;
-		mHungerSlipShowOffsets[i].y = recalcOffsetY( 250 ) * -gui_fov_scale;
-		mHungerSlipHideOffsets[i].x = recalcOffsetX( 540 ) * -gui_fov_scale;
-		mHungerSlipHideOffsets[i].y = recalcOffsetY( 370 ) * -gui_fov_scale;
-		mHungerSlipPosOffset[i] = mHungerSlipHideOffsets[i];
-		mHungerSlipPosTargetOffset[i] = mHungerSlipPosOffset[i];
-	}
-	mHungerSlipShowOffsets[2].y += 20 * gui_fov_scale_hud;
-	mHungerSlipHideOffsets[2].y -= 20 * gui_fov_scale_hud;
-	mHungerSlipShowOffsets[2].y -= 50 * gui_fov_scale_hud;
-	mHungerSlipShowOffsets[1].y -= 30 * gui_fov_scale_hud;
-	mHungerSlipShowOffsets[0].y += 18 * gui_fov_scale_hud;
-    for( int i=0; i<NUM_YUM_SLIPS; i++ )
-	{
-		mYumSlipHideOffset[i].x = recalcOffsetX( 600 ) * -gui_fov_scale;
-		mYumSlipHideOffset[i].y = recalcOffsetY( 330 ) * -gui_fov_scale;
-	}
-	mYumSlipHideOffset[2].x += 70 * gui_fov_scale_hud;
-    mYumSlipHideOffset[3].x += 80 * gui_fov_scale_hud;
-	for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
-		mYumSlipPosOffset[i] = mYumSlipHideOffset[i];
-		mYumSlipPosTargetOffset[i] = mYumSlipHideOffset[i];
-	}
-	int yumSlipIndex = 0;
-	for( int i=0; i<2; i++ ) {
-		if( mYumSlipNumberToShow[i] == mYumMultiplier ) {
-			yumSlipIndex = i;
-		}
-	}
-	mYumSlipPosTargetOffset[ yumSlipIndex ] = mYumSlipHideOffset[ yumSlipIndex ];
-	if( mYumMultiplier > 0 ) {
-		mYumSlipPosTargetOffset[ yumSlipIndex ].y += 36 * gui_fov_scale_hud;
-	}
-	for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
-		mTutorialHideOffset[i].x = recalcOffsetX( 914, true ) * ( i % 2 == 1 ) ? gui_fov_scale : -gui_fov_scale;
-		mTutorialHideOffset[i].y = recalcOffsetY( 430 ) * gui_fov_scale;
-		mTutorialTargetOffset[i] = mTutorialHideOffset[i];
-		mTutorialPosOffset[i] = mTutorialHideOffset[i];
-		mHintHideOffset[i].x = recalcOffsetX( 900 ) * gui_fov_scale;
-		mHintHideOffset[i].y = recalcOffsetY( 370 ) * -gui_fov_scale;
-		mHintTargetOffset[i] = mHintHideOffset[i];
-		mHintPosOffset[i] = mHintHideOffset[i];
-	}
-	mForceHintRefresh = true;
 }
 
