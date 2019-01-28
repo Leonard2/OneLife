@@ -96,6 +96,7 @@ extern float musicLoudness;
 // Some global variables to make the FOV mod work.  Scale can be anything from 1.0-6.0.
 // Vanilla scale of 1 is 1280x720, 1.5 is 1920x1080, 2 is 2560x1440, 3 is 4k, 6 is 8k
 // Scales above 2 will have significantly more "edge screen popping"
+extern int hud_mode;
 extern float gui_fov_scale;
 extern float gui_fov_scale_hud;
 extern float gui_fov_target_scale_hud;
@@ -192,9 +193,13 @@ static char showFertilityPanel = true;
 static char showAgePanel = true;
 static char showCursorZoom = false;
 
-static double recalcOffsetX( double x )
+static double recalcOffsetX( double x, bool force = false )
 {
-	return double(( x + gui_fov_offset_x ) / ( 1280 / 2 * gui_fov_target_scale_hud )) * ( 1280 / 2 );
+	double res;
+	if( hud_mode == 0 || force )
+		res = double(( x + gui_fov_offset_x ) / ( 1280 / 2 * gui_fov_target_scale_hud )) * ( 1280 / 2 );
+	else res = x / gui_fov_target_scale_hud;
+	return res;
 }
 static double recalcOffsetY( double y )
 {
@@ -4249,6 +4254,26 @@ char blackBorder = false;
 char whiteBorder = true;
 
 
+static void drawHUDBarPart( double x, double y, double width, double height )
+{
+	doublePair barPos[4] =
+	{
+		{ x, y + height },
+		{ x + width, y + height },
+		{ x + width, y },
+		{ x, y }
+	};
+	double gapLength = abs( barPos[0].x - barPos[1].x ) / ( 256. * gui_fov_scale_hud );
+	doublePair barTexCoords[4] =
+	{
+		{ 0.f, 0.f },
+		{ gapLength, 0.f },
+		{ gapLength, 1.f },
+		{ 0.f , 1.f },
+	};
+	drawSprite( guiPanelTileSprite, barPos, barTexCoords );
+}
+
 void LivingLifePage::draw( doublePair inViewCenter, 
                            double inViewSize ) {
     
@@ -7098,7 +7123,28 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
 
             setDrawColor( 1, 1, 1, 1 );
-            drawSprite( mHintSheetSprites[i], hintPos, gui_fov_scale_hud );
+			// Hint sheets have to be manually cut off in centered mode.
+			if( hud_mode != 0 && gui_fov_target_scale_hud > 1.f )
+			{
+				doublePair sheetPos[4] =
+				{
+					{ hintPos.x - getSpriteWidth( mHintSheetSprites[0] ) / 2. * gui_fov_scale_hud, hintPos.y + getSpriteHeight( mHintSheetSprites[0] ) / 2. * gui_fov_scale_hud },
+					{ lastScreenViewCenter.x + 640 * gui_fov_scale_hud, hintPos.y + getSpriteHeight( mHintSheetSprites[0] ) / 2. * gui_fov_scale_hud },
+					{ lastScreenViewCenter.x + 640 * gui_fov_scale_hud, hintPos.y - getSpriteHeight( mHintSheetSprites[0] ) / 2. * gui_fov_scale_hud },
+					{ hintPos.x - getSpriteWidth( mHintSheetSprites[0] ) / 2. * gui_fov_scale_hud, hintPos.y - getSpriteHeight( mHintSheetSprites[0] ) / 2. * gui_fov_scale_hud },
+				};
+				double sheetLength = ( sheetPos[1].x - sheetPos[0].x ) / ( getSpriteWidth( mHintSheetSprites[0] ) * gui_fov_scale_hud );
+				doublePair sheetCoords[4] =
+				{
+					{ 0.f, 0.f },
+					{ sheetLength, 0.f },
+					{ sheetLength, 1.f },
+					{ 0.f, 1.f },
+				};
+				drawSprite( mHintSheetSprites[i], sheetPos, sheetCoords );
+			}
+			else
+				drawSprite( mHintSheetSprites[i], hintPos, gui_fov_scale_hud );
             
 
             setDrawColor( 0, 0, 0, 1.0f );
@@ -7359,31 +7405,45 @@ void LivingLifePage::draw( doublePair inViewCenter,
 	// [Leo] Proper widescreen hud.
 	panelPos.y -= recalcOffsetY( 242 + 32 + 16 + 6 ) * gui_fov_scale;
 	// First left part.
-	panelPos.x = lastScreenViewCenter.x - recalcOffsetX( 384 ) * gui_fov_scale;
-	drawSprite( guiPanelLeftSprite, panelPos, gui_fov_scale_hud );
-	// Tile a part of the bar to fill the gap in the middle.
-	doublePair middlePos[4] =
+	if( hud_mode == 0 )
 	{
-		{ lastScreenViewCenter.x - recalcOffsetX( 128 ) * gui_fov_scale, lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale + getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud },
-		{ lastScreenViewCenter.x + recalcOffsetX( 128 ) * gui_fov_scale, lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale + getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud },
-		{ lastScreenViewCenter.x + recalcOffsetX( 128 ) * gui_fov_scale, lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale },
-		{ lastScreenViewCenter.x - recalcOffsetX( 128 ) * gui_fov_scale, lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale }
-	};
-	double gapLength = abs( middlePos[0].x - middlePos[1].x ) / ( 256. * gui_fov_scale_hud );
-	doublePair middleTexCoords[4] =
+		panelPos.x = lastScreenViewCenter.x - recalcOffsetX( 384 ) * gui_fov_scale;
+		drawSprite( guiPanelLeftSprite, panelPos, gui_fov_scale_hud );
+	}
+	else if ( hud_mode == 1 && gui_fov_target_scale_hud > 1.f )
 	{
-		{ 0.f, 0.f },
-		{ gapLength, 0.f },
-		{ gapLength, 1.f },
-		{ 0.f , 1.f },
-	};
-	drawSprite( guiPanelTileSprite, middlePos, middleTexCoords );
+		drawHUDBarPart(	lastScreenViewCenter.x - 640 * gui_fov_scale,
+						lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
+						( 1280. * gui_fov_scale / 2. ) - 640 * gui_fov_scale_hud,
+						getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
+	}
+
+	// Now the middle.
+	if( hud_mode == 0 )
+	{
+		drawHUDBarPart(	lastScreenViewCenter.x - recalcOffsetX( 128 ) * gui_fov_scale,
+						lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
+						recalcOffsetX( 128 ) * 2 * gui_fov_scale,
+						getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
+	}
+	else
+		drawSprite( mGuiPanelSprite, panelPos, gui_fov_scale_hud );
+
 	// And finally draw the right end.
-	panelPos.x = lastScreenViewCenter.x + recalcOffsetX( 384 ) * gui_fov_scale;
-    drawSprite( guiPanelRightSprite, panelPos, gui_fov_scale_hud );
+	if( hud_mode == 0 )
+	{
+		panelPos.x = lastScreenViewCenter.x + recalcOffsetX( 384 ) * gui_fov_scale;
+		drawSprite( guiPanelRightSprite, panelPos, gui_fov_scale_hud );
+	}
+	else if ( hud_mode == 1 && gui_fov_target_scale_hud > 1.f )
+	{
+		drawHUDBarPart(	lastScreenViewCenter.x + 640 * gui_fov_scale_hud,
+						lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
+						( 1280. * gui_fov_scale / 2. ) - 640 * gui_fov_scale_hud,
+						getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
+	}
+
 	panelPos.x = lastScreenViewCenter.x;
-
-
     if( ourLiveObject != NULL &&
         ourLiveObject->dying  &&
         ! ourLiveObject->sick ) {
@@ -19036,6 +19096,13 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         case 92: // backslash
             showFertilityPanel = !showFertilityPanel;
             break;
+        case 96: { // grave
+            hud_mode = SettingsManager::getIntSetting( "drawModeHUD", 0 );
+            hud_mode = abs( ( hud_mode + 1 ) % 3 );
+            SettingsManager::setSetting( "drawModeHUD", hud_mode );
+			calcOffsetHUD();
+            }
+            break;
         case 127: // DEL
 		{
 			if( isShiftKeyDown() )
@@ -19568,7 +19635,7 @@ char* LivingLifePage::getFertilityStatus( LiveObject* targetObject ) {
 void LivingLifePage::lineageFertilityPanel( LiveObject* ourLiveObject, char displayPanel ) {
 	if ( ! displayPanel ) return;
 	setDrawColor( 1, 1, 1, 1 );
-	doublePair fertPos = { lastScreenViewCenter.x + ( recalcOffsetX( 685 ) * gui_fov_scale ), 
+	doublePair fertPos = { lastScreenViewCenter.x + ( recalcOffsetX( 685, true ) * gui_fov_scale ), 
 						   lastScreenViewCenter.y + ( recalcOffsetY( 305 ) * gui_fov_scale ) };
 	drawSprite( mHintSheetSprites[2], fertPos, gui_fov_scale_hud );
 	setDrawColor( 0, 0, 0, 1 );
@@ -19740,7 +19807,7 @@ void LivingLifePage::calcOffsetHUD()
 		mYumSlipPosTargetOffset[ yumSlipIndex ].y += 36 * gui_fov_scale_hud;
 	}
 	for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
-		mTutorialHideOffset[i].x = recalcOffsetX( 914 ) * ( i % 2 == 1 ) ? gui_fov_scale : -gui_fov_scale;
+		mTutorialHideOffset[i].x = recalcOffsetX( 914, true ) * ( i % 2 == 1 ) ? gui_fov_scale : -gui_fov_scale;
 		mTutorialHideOffset[i].y = recalcOffsetY( 430 ) * gui_fov_scale;
 		mTutorialTargetOffset[i] = mTutorialHideOffset[i];
 		mTutorialPosOffset[i] = mTutorialHideOffset[i];

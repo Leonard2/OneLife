@@ -164,6 +164,7 @@ doublePair lastScreenViewCenter = {0, 0 };
 
 // world width of one view
 // FOVMOD NOTE:  Change 1/3 - Take these lines during the merge process
+int hud_mode = 0;
 float gui_fov_scale = 1.f;
 float gui_fov_target_scale_hud = 1.f;
 float gui_fov_scale_hud = 1.f;
@@ -204,6 +205,12 @@ void setFOVScale() {
     sanityCheckSettings( "fovScaleHUD" );
     sanityCheckSettings( "fovPreferredMin" );
     sanityCheckSettings( "fovPreferredMax" );
+	sanityCheckSettings( "drawModeHUD" );
+
+	hud_mode = SettingsManager::getIntSetting( "drawModeHUD", 0 );
+	if( hud_mode < 0 ) hud_mode = 0;
+	else if( hud_mode > 2 ) hud_mode = 2;
+	SettingsManager::setSetting( "drawModeHUD", hud_mode );
 
     gui_fov_target_scale_hud = SettingsManager::getFloatSetting( "fovScaleHUD", 1.f );
 	if( gui_fov_target_scale_hud < 1.f ) gui_fov_target_scale_hud = 1.f;
