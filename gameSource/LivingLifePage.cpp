@@ -15449,7 +15449,7 @@ void LivingLifePage::step() {
             // push camera out in front
             
 
-            double moveScale = 40 * cameraFollowsObject->currentSpeed * frameRateFactor;
+            double moveScale = 40 * cameraFollowsObject->currentSpeed * frameRateFactor * gui_fov_scale;
             if( ( screenCenterPlayerOffsetX < 0 &&
                   cameraFollowsObject->currentMoveDirection.x < 0 )
                 ||
@@ -19797,8 +19797,28 @@ void LivingLifePage::changeFOV( float newScale )
 		newScale = 1.f;
 	else if( newScale > 6.f )
 		newScale = 6.f;
-
 	SettingsManager::setSetting( "fovScale", newScale );
+
+	LiveObject *ourLiveObject = getOurLiveObject();
+	if( ourLiveObject != NULL )
+	{
+		if( ourLiveObject->heldByAdultID != -1 )
+		{
+			ourLiveObject = getGameObject( ourLiveObject->heldByAdultID );
+			if( ourLiveObject == NULL )
+				ourLiveObject = getOurLiveObject();
+		}
+		screenCenterPlayerOffsetX = int( double( screenCenterPlayerOffsetX ) / gui_fov_scale * newScale );
+		screenCenterPlayerOffsetY = int( double( screenCenterPlayerOffsetY ) / gui_fov_scale * newScale );
+
+		doublePair centerOffset = sub( lastScreenViewCenter, mult( ourLiveObject->currentPos, CELL_D ) );
+		centerOffset = mult( centerOffset, 1. / gui_fov_scale );
+		centerOffset = mult( centerOffset, newScale );
+		centerOffset = add( mult( ourLiveObject->currentPos, CELL_D ), centerOffset );
+		lastScreenViewCenter.x = round( centerOffset.x );
+		lastScreenViewCenter.y = round( centerOffset.y );
+	}
+
 	calcFontScale( newScale, handwritingFont );
 	calcFontScale( newScale, pencilFont );
 	calcFontScale( newScale, pencilErasedFont );
