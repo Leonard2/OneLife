@@ -19468,9 +19468,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 		{
 			if( isShiftKeyDown() )
 			{
-				if( getOurLiveObject()->age < 3 &&
-					getOurLiveObject()->heldByAdultID > 0 &&
-					getOurLiveObject()->heldByAdultID == getOurLiveObject()->lineage.getElementDirect(0) )
+				if( getOurLiveObject()->age < 3 )
 					sendToServerSocket( (char*)"DIE 0 0#" );
 				else
 					sendToServerSocket( (char*)"MOVE 0 0#" );
